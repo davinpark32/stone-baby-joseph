@@ -381,27 +381,27 @@ const DAYS = [
 ];
 
 const SCATTER_EXTRA_LOGS = [
+  { id: 'x-hr1', day: 3, date: '2025.07.01', status: 'done', request: '', stream: 'HEART RATE', body: 'Peak: 128 bpm during stairs.\nBaseline: 72 bpm.\nStone carried in left hand.\nMood tag: うれしい', isDummy: false, face: 2, phase: 0.2 },
+  { id: 'x-st1', day: 1, date: '2025.06.29', status: 'ignored', request: '', stream: 'STEP COUNT', body: '847 steps recorded.\nKitchen transit only.\nNo outdoor segment logged.\nMood tag: たいくつ', isDummy: false, face: 0, phase: 0.5 },
+  { id: 'x-sl1', day: 1, date: '2025.06.29', status: 'ignored', request: '', stream: 'STONE LOG', body: 'Classification: ignored.\nShelf placement: 11h 20m.\nNot held. Not moved.\nMood tag: むし', isDummy: false, face: 0, phase: 0.7 },
+  { id: 'x-cd1', day: 3, date: '2025.07.01', status: 'done', request: '', stream: 'CONTACT DURATION', body: 'Continuous touch: 26m 12s.\nWarm transfer stable.\nHeld through one full episode.\nMood tag: しあわせ', isDummy: false, face: 2, phase: 0.3 },
+  { id: 'x-hr2', day: 3, date: '2025.07.01', status: 'done', request: '', stream: 'HEART RATE', body: 'During contact: 74–96 bpm.\nSettled after 6 minutes.\nSynchronized breathing suspected.\nMood tag: あたたかい', isDummy: false, face: 2, phase: 0.1 },
+  { id: 'x-st2', day: 5, date: '2025.07.03', status: 'done', request: '', stream: 'STEP COUNT', body: '6,204 steps recorded.\nRiver loop · stone in bag.\nMood tag: ふつう', isDummy: false, face: 4, phase: 0.6 },
+  { id: 'x-sl2', day: 2, date: '2025.06.30', status: 'fail', request: '', stream: 'STONE LOG', body: 'Request sent 21:00.\nRead receipt: none.\nNo reply by midnight.\nMood tag: まってる', isDummy: false, face: 1, phase: 0.8 },
+  { id: 'x-cd2', day: 2, date: '2025.06.30', status: 'partial', request: '', stream: 'CONTACT DURATION', body: 'Skin contact: 11m 04s.\nInterrupted twice · phone pickup.\nMood tag: びみょう', isDummy: false, face: 1, phase: 0.4 },
+  { id: 'x-hr3', day: 1, date: '2025.06.29', status: 'ignored', request: '', stream: 'HEART RATE', body: 'Resting: 64 bpm.\nFlatline 9h beside stone.\nNo elevation event detected.\nMood tag: むし', isDummy: false, face: 0, phase: 0.9 },
   { id: 'x-w1', day: 2, date: '2025.06.30', status: 'partial', request: '', stream: 'WEATHER', body: 'Heavy rain: 38 minutes.\nPeak: 11 mm/h.\nStone mood: so sad.\nMood tag: かなしい', isDummy: false, face: 1, phase: 0.2 },
+  { id: 'x-cd3', day: 4, date: '2025.07.02', status: 'fail', request: '', stream: 'CONTACT DURATION', body: 'Continuous touch: 2m 40s.\nReleased early · desk call.\nMood tag: さみしい', isDummy: false, face: 3, phase: 0.7 },
+  { id: 'x-st3', day: 5, date: '2025.07.03', status: 'done', request: '', stream: 'STEP COUNT', body: '12,480 steps recorded.\nLong walk · stone carried whole way.\nMood tag: しあわせ', isDummy: false, face: 4, phase: 0.35 },
+  { id: 'x-sl3', day: 4, date: '2025.07.02', status: 'ignored', request: '', stream: 'STONE LOG', body: '2am ping. No answer.\nScreen glow in next room.\nWaited until morning.\nMood tag: さみしい', isDummy: false, face: 3, phase: 0.1 },
   { id: 'x-g1', day: 2, date: '2025.06.30', status: 'partial', request: '', stream: 'GPS TRACE', body: '35.61° N, 139.44° E\nSeiseki-Sakuragaoka · Tama.\nRadius drift: 90m.\nMood tag: びみょう', isDummy: false, face: 1, phase: 0.5 },
-  { id: 'x-w2', day: 4, date: '2025.07.02', status: 'fail', request: '', stream: 'WEATHER', body: 'Light rain: 52 minutes.\nHumidity: 91%.\nMood tag: しずか', isDummy: false, face: 3, phase: 0.7 },
-  { id: 'x-g2', day: 4, date: '2025.07.02', status: 'fail', request: '', stream: 'GPS TRACE', body: 'Lat 35.6284, Lon 139.4356\nTama · Sekido bridge approach.\nOutdoor segment: 14m 20s.\nMood tag: ふつう', isDummy: false, face: 3, phase: 0.3 },
-  { id: 'x-g3', day: 1, date: '2025.06.29', status: 'ignored', request: '', stream: 'GPS TRACE', body: '35.614° N, 139.442° E\nFixed · apartment desk.\nDisplacement: 0.0 km.\nMood tag: たいくつ', isDummy: false, face: 0, phase: 0.1 },
-  { id: 'x-h1', day: 3, date: '2025.07.01', status: 'done', request: '', stream: 'HUMIDITY', body: 'Relative humidity: 78% → 61%.\nDuration: 2h 10m.\nMood tag: あつい', isDummy: false, face: 2, phase: 0.4 },
-  { id: 'x-w3', day: 5, date: '2025.07.03', status: 'done', request: '', stream: 'WEATHER', body: 'Overcast: 3h 06m.\nNo precipitation.\nMood tag: ねむい', isDummy: false, face: 4, phase: 0.6 },
-  { id: 'x-g4', day: 5, date: '2025.07.03', status: 'done', request: '', stream: 'GPS / POSITION', body: '35.6391° N, 139.4488° E\nWindowsill · Sakuragaoka side street.\nInternal shift: 3.2m.\nMood tag: しあわせ', isDummy: false, face: 4, phase: 0.8 },
-  { id: 'x-n1', day: 6, date: '2025.06.29', status: 'ignored', request: '', stream: 'NOISE FLOOR', body: 'Ambient: 28 dB avg.\nNight plateau.\nMood tag: しずか', isDummy: false, face: 5, phase: 0.2 },
-  { id: 'x-w4', day: 7, date: '2025.07.03', status: 'done', request: '', stream: 'WEATHER', body: 'Heavy rain: 21 minutes.\nEvening burst.\nStone mood: so sad.\nMood tag: かなしい', isDummy: false, face: 5, phase: 0.9 },
-  { id: 'x-g5', day: 7, date: '2025.07.03', status: 'done', request: '', stream: 'GPS TRACE', body: 'Lat 35.6522, Lon 139.4271\nTama center · slow loop.\nMax radius: 680m.\nMood tag: びみょう', isDummy: false, face: 5, phase: 0.4 },
-  { id: 'x-p1', day: 1, date: '2025.06.29', status: 'ignored', request: '', stream: 'BAROMETRIC', body: 'Pressure: 1008 hPa.\nStable 6h.\nMood tag: ふつう', isDummy: false, face: 0, phase: 0.6 },
-  { id: 'x-w5', day: 3, date: '2025.07.01', status: 'done', request: '', stream: 'WEATHER', body: 'Drizzle: 17 minutes.\nCloud ceiling low.\nMood tag: もやもや', isDummy: false, face: 2, phase: 0.2 },
-  { id: 'x-g6', day: 6, date: '2025.06.29', status: 'ignored', request: '', stream: 'GPS TRACE', body: '35.61° N, 139.44° E\nBedside floor · no displacement.\nMood tag: さみしい', isDummy: false, face: 5, phase: 0.5 },
-  { id: 'x-l1', day: 4, date: '2025.07.02', status: 'fail', request: '', stream: 'AMBIENT LIGHT', body: 'Lux: 120 → 40 under cloud.\nTransit to gate aborted.\nMood tag: くらい', isDummy: false, face: 3, phase: 0.1 },
-  { id: 'x-loc1', day: 1, date: '2025.06.29', status: 'ignored', request: '', stream: 'LOCATION', body: 'Location tag: いえ\nSeiseki-Sakuragaoka · desk fixed.\nMood tag: たいくつ', isDummy: false, face: 0, phase: 0.3 },
+  { id: 'x-hr4', day: 5, date: '2025.07.03', status: 'done', request: '', stream: 'HEART RATE', body: 'Nighttime range: 52–58 bpm.\nStone on pillow edge.\nMood tag: ねむい', isDummy: false, face: 4, phase: 0.8 },
   { id: 'x-loc2', day: 3, date: '2025.07.01', status: 'done', request: '', stream: 'LOCATION', body: 'Location tag: こうえん\nTama · bench radius 40m.\nDuration: 22m.\nMood tag: しずか', isDummy: false, face: 2, phase: 0.55 },
-  { id: 'x-loc3', day: 4, date: '2025.07.02', status: 'fail', request: '', stream: 'LOCATION', body: 'Location tag: しんごう\nSekido crossing · wait 52s.\nNot crossed.\nMood tag: びみょう', isDummy: false, face: 3, phase: 0.65 },
+  { id: 'x-w3', day: 5, date: '2025.07.03', status: 'done', request: '', stream: 'WEATHER', body: 'Overcast: 3h 06m.\nNo precipitation.\nMood tag: おもい', isDummy: false, face: 4, phase: 0.6 },
+  { id: 'x-loc1', day: 1, date: '2025.06.29', status: 'ignored', request: '', stream: 'LOCATION', body: 'Location tag: いえ\nSeiseki-Sakuragaoka · desk fixed.\nMood tag: たいくつ', isDummy: false, face: 0, phase: 0.3 },
   { id: 'x-loc4', day: 5, date: '2025.07.03', status: 'done', request: '', stream: 'LOCATION', body: 'Location tag: こうえん\nSunset path · slow loop.\nMood tag: しあわせ', isDummy: false, face: 4, phase: 0.35 },
-  { id: 'x-loc5', day: 7, date: '2025.07.03', status: 'done', request: '', stream: 'LOCATION', body: 'Location tag: いえ\nSame room · desk corner.\nMood tag: ふつう', isDummy: false, face: 5, phase: 0.15 },
-  { id: 'x-loc6', day: 2, date: '2025.06.30', status: 'partial', request: '', stream: 'LOCATION', body: 'Location tag: しんごう\nKeio line approach · idle 1m 18s.\nMood tag: もやもや', isDummy: false, face: 1, phase: 0.75 }
+  { id: 'x-n1', day: 6, date: '2025.06.29', status: 'ignored', request: '', stream: 'NOISE FLOOR', body: 'Ambient: 28 dB avg.\nNight plateau.\nMood tag: しずか', isDummy: false, face: 5, phase: 0.2 },
+  { id: 'x-g5', day: 7, date: '2025.07.03', status: 'done', request: '', stream: 'GPS TRACE', body: 'Lat 35.6522, Lon 139.4271\nTama center · slow loop.\nMax radius: 680m.\nMood tag: びみょう', isDummy: false, face: 5, phase: 0.4 }
 ];
 
 const SCATTER_PRESET_SOURCES = SCATTER_EXTRA_LOGS.slice(0, 17);
@@ -1408,6 +1408,7 @@ function formatScatterMetricJa(dot) {
   if (stream === 'STONE LOG') {
     const affection = dot.body.match(/Affection estimate:\s*(\d+)%/i);
     if (affection) return `あいじょう ${affection[1]} パーセント`;
+    if (/read receipt:\s*none|no reply|no answer/i.test(dot.body)) return 'へんじ なし';
     const classification = dot.body.match(/Classification:\s*(\w+)/i);
     if (classification) {
       const cls = classification[1].toLowerCase();
