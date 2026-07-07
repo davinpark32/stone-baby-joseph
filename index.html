@@ -432,10 +432,29 @@ const SCATTER_EXTRA_LOGS = [
   { id: 'x-loc1', day: 1, date: '2025.06.29', status: 'ignored', request: '', stream: 'LOCATION', body: 'Location tag: いえ\nSeiseki-Sakuragaoka · desk fixed.\nMood tag: たいくつ', isDummy: false, face: 0, phase: 0.3 },
   { id: 'x-loc4', day: 5, date: '2025.07.03', status: 'done', request: '', stream: 'LOCATION', body: 'Location tag: こうえん\nSunset path · slow loop.\nMood tag: しあわせ', isDummy: false, face: 4, phase: 0.35 },
   { id: 'x-n1', day: 6, date: '2025.06.29', status: 'ignored', request: '', stream: 'NOISE FLOOR', body: 'Ambient: 28 dB avg.\nNight plateau.\nMood tag: しずか', isDummy: false, face: 5, phase: 0.2 },
-  { id: 'x-g5', day: 7, date: '2025.07.03', status: 'done', request: '', stream: 'GPS TRACE', body: 'Lat 35.6522, Lon 139.4271\nTama center · slow loop.\nMax radius: 680m.\nMood tag: びみょう', isDummy: false, face: 5, phase: 0.4 }
+  { id: 'x-g5', day: 7, date: '2025.07.03', status: 'done', request: '', stream: 'GPS TRACE', body: 'Lat 35.6522, Lon 139.4271\nTama center · slow loop.\nMax radius: 680m.\nMood tag: びみょう', isDummy: false, face: 5, phase: 0.4 },
+  { id: 'x-sl4', day: 6, date: '2025.06.29', status: 'ignored', request: '', stream: 'STONE LOG', body: 'Desk corner. 14 hours.\nHuman passed three times.\nNo pickup. No glance.\nMood tag: むし', isDummy: false, face: 5, phase: 0.6 },
+  { id: 'x-sl5', day: 2, date: '2025.06.30', status: 'ignored', request: '', stream: 'STONE LOG', body: 'Human left for lecture.\nStone on shelf · rusuban duty.\n7h 40m alone in room.\nMood tag: るすばん', isDummy: false, face: 1, phase: 0.15 },
+  { id: 'x-sl6', day: 6, date: '2025.06.29', status: 'ignored', request: '', stream: 'STONE LOG', body: 'Message sent: 02:00.\nDelivery: confirmed.\nRead receipt: none.\nResponse: none.\nMood tag: へんじなし', isDummy: false, face: 5, phase: 0.85 },
+  { id: 'x-sl7', day: 4, date: '2025.07.02', status: 'fail', request: '', stream: 'STONE LOG', body: 'Are you still there?\nSent 23:14.\nNo reply by morning.\nMood tag: へんじなし', isDummy: false, face: 3, phase: 0.45 },
+  { id: 'x-hr5', day: 2, date: '2025.06.30', status: 'partial', request: '', stream: 'HEART RATE', body: 'Resting: 66 bpm.\nPhone screen glow: 6h.\nStone untouched beside keyboard.\nMood tag: むし', isDummy: false, face: 1, phase: 0.95 },
+  { id: 'x-g2', day: 1, date: '2025.06.29', status: 'ignored', request: '', stream: 'GPS TRACE', body: '35.6142° N, 139.4418° E\nSeiseki-Sakuragaoka · desk fixed.\nDisplacement: 0.0 km.\nMood tag: むし', isDummy: false, face: 0, phase: 0.4 },
+  { id: 'x-g3', day: 4, date: '2025.07.02', status: 'fail', request: '', stream: 'GPS TRACE', body: '35.6188° N, 139.4395° E\nCorner store abort · return leg.\nMax radius: 340m.\nOutdoor: 18m 40s.', isDummy: false, face: 3, phase: 0.25 },
+  { id: 'x-g4', day: 3, date: '2025.07.01', status: 'done', request: '', stream: 'GPS TRACE', body: '35.6411° N, 139.4468° E\nTama · bench loop.\nRadius: 40m.\nDuration: 22m.', isDummy: false, face: 2, phase: 0.65 },
+  { id: 'x-g6', day: 6, date: '2025.06.29', status: 'ignored', request: '', stream: 'GPS TRACE', body: '35.6129° N, 139.4424° E\nBedside floor · static.\nNight drift: 0.01m.\nMood tag: るすばん', isDummy: false, face: 5, phase: 0.55 },
+  { id: 'x-g7', day: 5, date: '2025.07.03', status: 'done', request: '', stream: 'GPS / POSITION', body: '35.6405° N, 139.4476° E\nSakuragaoka · shelf B → windowsill C.\nVertical shift: +0.4m.', isDummy: false, face: 4, phase: 0.5 }
 ];
 
-const SCATTER_PRESET_SOURCES = SCATTER_EXTRA_LOGS.slice(0, 17);
+const SCATTER_PRESET_IDS = [
+  'x-hr1', 'x-hr3', 'x-hr5',
+  'x-st1', 'x-st2', 'x-st3',
+  'x-cd1', 'x-cd2', 'x-cd3',
+  'x-sl1', 'x-sl5', 'x-sl6', 'x-sl7',
+  'x-g1', 'x-g2', 'x-g3', 'x-g4'
+];
+const SCATTER_PRESET_SOURCES = SCATTER_PRESET_IDS
+  .map(id => SCATTER_EXTRA_LOGS.find(entry => entry.id === id))
+  .filter(Boolean);
 const SCATTER_BUNDLE_TOTAL = SCATTER_PRESET_SOURCES.length;
 const CUBE_HANDFUL_REMAINING = 42;
 
@@ -1439,6 +1458,12 @@ function formatScatterMetricJa(dot) {
     if (loc) return loc[1].trim();
   }
   if (stream === 'STONE LOG') {
+    const mood = dot.body.match(/Mood tag:\s*([^\n]+)/i);
+    if (mood) {
+      const tag = mood[1].trim();
+      if (tag === 'むし' || tag === 'るすばん') return tag;
+      if (tag === 'へんじなし' || tag === 'まってる') return 'へんじ なし';
+    }
     const affection = dot.body.match(/Affection estimate:\s*(\d+)%/i);
     if (affection) return `あいじょう ${affection[1]} パーセント`;
     if (/read receipt:\s*none|no reply|no answer/i.test(dot.body)) return 'へんじ なし';
@@ -1506,6 +1531,7 @@ const STONE_EMOTION_RULES = [
   [/proximity sustained|present anyway|stayed|yet proximity/i, 'そば'],
   [/warm|heat detected|body heat|warmth/i, 'あたたかい'],
   [/ignored|classification: ignored/i, 'むし'],
+  [/rusuban|留守|left for lecture|alone in room/i, 'るすばん'],
   [/waiting|still waiting|2am ping/i, 'まってる'],
   [/embarrass|annoyed|bag/i, 'はずかしい'],
   [/forgot|phone glow|then nothing/i, 'わすれた'],
@@ -1670,7 +1696,7 @@ function scatterMetricToRootHz(dot) {
 
 const SCATTER_PRESET_LABEL_MODES = [
   'both', 'data', 'feeling', 'both', 'both', 'data', 'feeling', 'both',
-  'data', 'both', 'feeling', 'data', 'both', 'feeling', 'both', 'data', 'both'
+  'data', 'both', 'feeling', 'both', 'feeling', 'both', 'data', 'both', 'data'
 ];
 
 function buildScatterPresets() {
