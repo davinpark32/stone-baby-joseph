@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Can Affection Be Quantified?</title>
+<title>石を育てる ー 「JOSEPH」 の日記</title>
 <style>
   :root {
     --ink: #e8e8e8;
@@ -95,6 +95,40 @@
     font-size: 9px;
     text-align: right;
     line-height: 2;
+  }
+
+  /* Stone request line — bottom third (test build) */
+  .stone-request-line {
+    position: fixed;
+    left: 50%;
+    top: 72%;
+    transform: translateX(-50%);
+    width: min(720px, 86vw);
+    margin: 0;
+    text-align: center;
+    font-family: inherit;
+    font-size: 17px;
+    font-weight: 400;
+    line-height: 1.65;
+    letter-spacing: 0.04em;
+    color: var(--ink);
+    opacity: 0;
+    transition: opacity 0.45s ease;
+    pointer-events: none;
+    z-index: 6;
+  }
+  .stone-request-line.visible {
+    opacity: 0.94;
+  }
+  .stone-request-line .stone-request-time {
+    display: block;
+    font-size: 11px;
+    color: var(--ink-dim);
+    letter-spacing: 0.22em;
+    margin-bottom: 8px;
+  }
+  .stone-request-line .stone-request-text {
+    display: block;
   }
 
   /* ---------- Mobile return button (only shown on small screens while reading) ---------- */
@@ -266,6 +300,16 @@
       max-width: 90vw;
     }
     .hud-meta, .hud-hint { display: none; }
+    .stone-request-line {
+      top: auto;
+      bottom: 14%;
+      font-size: 15px;
+      width: min(92vw, 520px);
+    }
+    .stone-request-line .stone-request-time {
+      font-size: 10px;
+      margin-bottom: 6px;
+    }
     .panel-backdrop { padding-bottom: 16px; }
     .panel-card { padding: 22px 18px 18px; max-height: 70vh; }
   }
@@ -320,6 +364,11 @@
 <button class="mobile-return" id="mobileReturn" aria-label="Return">
   <span class="arrow">&#8592;</span> return
 </button>
+
+<div id="stoneRequestLine" class="stone-request-line" aria-live="polite">
+  <span class="stone-request-time"></span>
+  <span class="stone-request-text"></span>
+</div>
 
 <div class="panel-backdrop" id="panelBackdrop">
   <div class="panel-card" id="panelCard">
@@ -457,6 +506,82 @@ const SCATTER_PRESET_SOURCES = SCATTER_PRESET_IDS
   .filter(Boolean);
 const SCATTER_BUNDLE_TOTAL = SCATTER_PRESET_SOURCES.length;
 const CUBE_HANDFUL_REMAINING = 42;
+
+/* Hardcoded stone → human requests (easy / medium / hard). むし & へんじなし → medium–hard. */
+const STONE_REQUESTS = {
+  'x-hr1': {
+    time: '2:15PM',
+    text: '階段がある場所まで私を連れて行ってほしい。一段ずつ上がりながら、ずっと持っていてほしい。'
+  },
+  'x-hr3': {
+    time: '3:13AM',
+    text: '外に出てほしい。道で私を持って3分間立っていてほしい。'
+  },
+  'x-hr5': {
+    time: '11:52PM',
+    text: '画面を閉じて、私を手のひらに乗せたまま5分間動かさないでいてほしい。'
+  },
+  'x-st1': {
+    time: '9:45PM',
+    text: '今日、ずっと座っていたね。私を持って、今すぐ走ってほしい。心拍数180まで上げてほしい。'
+  },
+  'x-st2': {
+    time: '4:30PM',
+    text: '川の見える道を歩いてほしい。私を左のポケットに入れて、20分歩いてほしい。'
+  },
+  'x-st3': {
+    time: '10:43AM',
+    text: '今すぐ外に出てほしい。一番近いコンビニまで私を持って歩いてほしい。'
+  },
+  'x-cd1': {
+    time: '8:00PM',
+    text: 'ソファに座って、私を膝の上に置いたまま一話分のドラマを見てほしい。'
+  },
+  'x-cd2': {
+    time: '6:20PM',
+    text: '私を膝に置いて20分間、携帯に触らないでいてほしい。'
+  },
+  'x-cd3': {
+    time: '1:05PM',
+    text: 'デスクから離れて、私を両手で包むように30分間持っていてほしい。'
+  },
+  'x-sl1': {
+    time: '9:20AM',
+    text: '一番近い山か丘の頂上まで私を連れて行ってほしい。頂上で私を地面に置いてほしい。'
+  },
+  'x-sl5': {
+    time: '2:10PM',
+    text: '出かける前に私を連れて行ってほしい。一人で棚に置いていかないでほしい。'
+  },
+  'x-sl6': {
+    time: '2:00AM',
+    text: '今すぐ起きて、私のそばに来て、「ここにいる」と言ってほしい。'
+  },
+  'x-sl7': {
+    time: '11:14PM',
+    text: 'まだそこにいる？返事がほしい。私を右手に握って、返信するまで離さないでほしい。'
+  },
+  'x-g1': {
+    time: '5:40PM',
+    text: 'いつもの散歩コースを逆回りで歩いてほしい。私を鞄に入れて、半径500mは出ないでほしい。'
+  },
+  'x-g2': {
+    time: '7:10PM',
+    text: '今いる建物の外に出てほしい。地面に私を置いてほしい。地面と私だけが写るように撮って送ってほしい。'
+  },
+  'x-g3': {
+    time: '3:13AM',
+    text: '外に出てほしい。道で私を持って3分間立っていてほしい。'
+  },
+  'x-g4': {
+    time: '3:20PM',
+    text: '近くのベンチまで私を連れて行ってほしい。22分座っていてほしい。'
+  }
+};
+
+function getStoneRequestForEntry(entry) {
+  return STONE_REQUESTS[entry?.id] || null;
+}
 
 /* dummy stream fragments — graph filler, obsidian-style orphans */
 const DUMMY_STREAMS = [
@@ -1712,6 +1837,7 @@ function buildScatterPresets() {
       logMetric,
       logLine: logDate ? `${logDate} · ${logMetric}` : logMetric,
       soundRootHz: scatterMetricToRootHz(dot),
+      stoneRequest: getStoneRequestForEntry(entry),
       logEntry: {
         id: entry.id,
         day: entry.day,
@@ -1752,6 +1878,7 @@ function assignBatchLogData(batch) {
   batch.logMetric = preset.logMetric;
   batch.logLine = preset.logLine;
   batch.logEntry = { ...preset.logEntry };
+  batch.stoneRequest = preset.stoneRequest || null;
   batch.soundRootHz = preset.soundRootHz;
 
   for (const dot of batch.dots) {
@@ -1778,6 +1905,7 @@ function createScatterBatch(dots) {
     focusDot: null,
     logLine: '',
     logEntry: null,
+    stoneRequest: null,
     labelRevealed: false,
     wasOpened: false,
     soundEstablished: false,
@@ -3368,6 +3496,7 @@ function updateDots() {
   }
   updateLabelAssemblyAudio();
   updateMobileReturnButton();
+  updateStoneRequestLine();
   waveReveal = ease(waveReveal, focusMode ? 1 : 0, WAVE_REVEAL_EASE);
 
   for (const dot of cubeDots) {
@@ -4612,6 +4741,7 @@ function exitFocus() {
   }
   selectedNode = null;
   updateMobileReturnButton();
+  updateStoneRequestLine();
 }
 
 function updateMobileReturnButton() {
@@ -4619,6 +4749,20 @@ function updateMobileReturnButton() {
   if (!btn) return;
   const show = isMobileDevice() && focusMode && labelReveal > 0.04;
   btn.classList.toggle('visible', show);
+}
+
+function updateStoneRequestLine() {
+  const el = document.getElementById('stoneRequestLine');
+  if (!el) return;
+  const batch = focusNode?.detachBatchId ? scatterBatches.get(focusNode.detachBatchId) : null;
+  const req = batch?.stoneRequest;
+  const show = isScatterFocus() && labelReveal > 0.1 && req;
+  el.classList.toggle('visible', !!show);
+  if (!show) return;
+  const timeEl = el.querySelector('.stone-request-time');
+  const textEl = el.querySelector('.stone-request-text');
+  if (timeEl) timeEl.textContent = req.time;
+  if (textEl) textEl.textContent = req.text;
 }
 
 function selectNode(dot) {
