@@ -1115,8 +1115,10 @@ function finishPointerRelease(e) {
 
   const p = e ? getPointer(e) : { x: mouse.x, y: mouse.y };
   if (isScatterFocus()) {
+    if (pointerDown) tryDismissFocusOnEmptyClick(p.x, p.y);
     clearDragFlags();
     dragMoved = false;
+    pointerGestureDragged = false;
     return;
   }
   if (scatterDragPending && scatterDragBatch) {
@@ -3646,6 +3648,33 @@ function isScatterFocus() {
   return focusMode && focusNode?.detachLocked && focusNode.detachAmt > 0.01;
 }
 
+function pointerHitsFocusContent(sx, sy) {
+  if (findScatterBatchAt(sx, sy)) return true;
+  if (!focusNode) return false;
+
+  const barrier = getLabelBarrier(focusNode);
+  if (!barrier) return false;
+
+  const dx = sx - barrier.cx;
+  const dy = sy - barrier.cy;
+  const ang = Math.atan2(dy, dx);
+  const shell = 1
+    + 0.16 * Math.sin(ang * 4 + t * 0.0055 * RAY_MOTION_SCALE + barrier.wobble)
+    + 0.09 * Math.sin(ang * 7 - t * 0.0038 * RAY_MOTION_SCALE);
+  const rx = barrier.rx * shell;
+  const ry = barrier.ry * (1 + 0.11 * Math.cos(ang * 5 + t * 0.0045 * RAY_MOTION_SCALE));
+  const norm = Math.hypot(dx / Math.max(rx, 1), dy / Math.max(ry, 1));
+  return norm < 1.35;
+}
+
+function tryDismissFocusOnEmptyClick(sx, sy) {
+  if (!focusMode || labelReveal < 0.04) return;
+  if (pointerGestureDragged || dragMoved) return;
+  if (Math.hypot(sx - dragStartX, sy - dragStartY) > SCATTER_DRAG_THRESHOLD) return;
+  if (pointerHitsFocusContent(sx, sy)) return;
+  revertFromFocus();
+}
+
 function isScatterLabelDot(dot) {
   if (!dot?.detachBatchId) return false;
   const batch = scatterBatches.get(dot.detachBatchId);
@@ -4635,6 +4664,14 @@ function movePointer(e) {
   mouse.x = p.x;
   mouse.y = p.y;
   mouse.onCanvas = true;
+
+  if (focusMode && pointerDown && pointerPrimaryDown(e)) {
+    if (Math.hypot(p.x - dragStartX, p.y - dragStartY) > SCATTER_DRAG_THRESHOLD) {
+      pointerGestureDragged = true;
+      dragMoved = true;
+    }
+    return;
+  }
 
   if (scatterDragPending && scatterDragBatch && pointerPrimaryDown(e)) {
     if (!focusMode) {
