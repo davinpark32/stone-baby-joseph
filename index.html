@@ -1,0 +1,4729 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Can Affection Be Quantified?</title>
+<style>
+  :root {
+    --ink: #e8e8e8;
+    --ink-dim: #666;
+    --bg: #000;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0; padding: 0;
+    width: 100%; height: 100%;
+    background: var(--bg);
+    overflow: hidden;
+    font-family: 'Courier New', Courier, monospace;
+    color: var(--ink);
+    cursor: none;
+  }
+
+  #stage {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    cursor: none;
+    touch-action: none;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+  }
+
+  .hud {
+    position: fixed;
+    z-index: 5;
+    pointer-events: none;
+    color: var(--ink-dim);
+    letter-spacing: 0.12em;
+  }
+
+  .hud-title {
+    top: 32px; left: 36px;
+    max-width: 400px;
+  }
+  .hud-title .eyebrow {
+    font-size: 10px;
+    margin-bottom: 10px;
+    letter-spacing: 0.28em;
+  }
+  .hud-title h1 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 400;
+    color: var(--ink);
+    line-height: 1.6;
+    letter-spacing: 0.06em;
+  }
+  .hud-title .hud-subtitle {
+    margin: 6px 0 0;
+    font-size: 10px;
+    font-weight: 400;
+    color: var(--ink-dim);
+    line-height: 1.5;
+    letter-spacing: 0.14em;
+  }
+  .hud-title p {
+    margin: 14px 0 0;
+    font-size: 10px;
+    line-height: 1.8;
+    font-weight: 400;
+    max-width: 340px;
+  }
+  #hudDesc {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .hud-desc-en {
+    color: var(--ink-dim);
+    letter-spacing: 0.06em;
+  }
+
+  .hud-meta {
+    bottom: 28px; left: 36px;
+    font-size: 9px;
+    line-height: 2;
+  }
+
+  .hud-hint {
+    bottom: 28px; right: 36px;
+    font-size: 9px;
+    text-align: right;
+    line-height: 2;
+  }
+
+  /* ---------- Specimen panel ---------- */
+  .panel-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.72);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.7s ease;
+    z-index: 50;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding: 0 16px 28px;
+  }
+  .panel-backdrop.active {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .panel-card {
+    width: min(520px, 94vw);
+    max-height: 58vh;
+    overflow-y: auto;
+    background: #050505;
+    border: 1px solid #333;
+    padding: 28px 28px 24px;
+    transform: translateY(24px);
+    opacity: 0;
+    transition: transform 0.65s cubic-bezier(.2,.9,.25,1), opacity 0.55s ease;
+    position: relative;
+  }
+  .panel-backdrop.active .panel-card {
+    transform: translateY(0);
+    opacity: 1;
+  }
+
+  .panel-card::-webkit-scrollbar { width: 3px; }
+  .panel-card::-webkit-scrollbar-thumb { background: #444; }
+
+  .panel-header {
+    border-bottom: 1px solid #222;
+    padding-bottom: 16px;
+    margin-bottom: 18px;
+  }
+  .panel-stream {
+    font-size: 9px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: #888;
+    margin: 0 0 6px;
+  }
+  .panel-day {
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    margin: 0;
+    color: var(--ink);
+  }
+
+  .panel-body {
+    font-size: 11px;
+    line-height: 1.85;
+    color: #aaa;
+    font-weight: 400;
+    margin: 0 0 16px;
+    white-space: pre-wrap;
+  }
+
+  .panel-context {
+    font-size: 10px;
+    line-height: 1.75;
+    color: #555;
+    border-top: 1px solid #1a1a1a;
+    padding-top: 14px;
+    margin: 0;
+    font-style: italic;
+  }
+
+  .panel-close {
+    position: absolute;
+    top: 16px; right: 18px;
+    width: 24px; height: 24px;
+    border: 1px solid #333;
+    background: transparent;
+    color: #666;
+    font-size: 12px;
+    cursor: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: inherit;
+  }
+  .panel-close:hover { color: var(--ink); border-color: #555; }
+
+  .panel-backdrop,
+  .panel-card,
+  .panel-backdrop * {
+    cursor: none;
+  }
+
+  .vignette {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 2;
+    background: radial-gradient(ellipse at 50% 50%, transparent 55%, rgba(0,0,0,0.35) 100%);
+    transition: background 0.8s ease, opacity 0.8s ease;
+  }
+
+  body.page-evolving .vignette {
+    background:
+      radial-gradient(ellipse at 50% 62%, rgba(120, 140, 175, 0.07) 0%, transparent 48%),
+      radial-gradient(ellipse at 50% 50%, transparent 42%, rgba(0, 0, 0, 0.52) 100%);
+  }
+
+  #stage.smooth-stage {
+    image-rendering: auto;
+  }
+
+  @media (max-width: 560px) {
+    .hud-title { max-width: 82vw; top: 20px; left: 20px; }
+    .hud-title .eyebrow {
+      font-size: 8px;
+      letter-spacing: 0.18em;
+      margin-bottom: 8px;
+    }
+    .hud-title h1 {
+      font-size: 12px;
+      line-height: 1.45;
+      letter-spacing: 0.04em;
+    }
+    .hud-title .hud-subtitle {
+      font-size: 8px;
+      letter-spacing: 0.1em;
+      margin-top: 5px;
+    }
+    .hud-title p {
+      font-size: 8px;
+      line-height: 1.65;
+      letter-spacing: 0.05em;
+      max-width: 90vw;
+    }
+    .hud-meta, .hud-hint { display: none; }
+    .panel-backdrop { padding-bottom: 16px; }
+    .panel-card { padding: 22px 18px 18px; max-height: 70vh; }
+  }
+
+  @media (max-width: 390px) {
+    .hud-title { top: 16px; left: 16px; max-width: 88vw; }
+    .hud-title .eyebrow {
+      font-size: 7px;
+      letter-spacing: 0.14em;
+    }
+    .hud-title h1 {
+      font-size: 10.5px;
+      line-height: 1.4;
+    }
+    .hud-title .hud-subtitle {
+      font-size: 7.5px;
+      margin-top: 4px;
+    }
+    .hud-title p {
+      font-size: 7.5px;
+      line-height: 1.55;
+      margin-top: 10px;
+    }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="stage"></canvas>
+<div class="vignette"></div>
+
+<div class="hud hud-title" id="hudTitle">
+  <div class="eyebrow" id="hudEyebrow">Stone Baby Joseph</div>
+  <h1>石を育てる</h1>
+  <p class="hud-subtitle">Can Affection Be Quantified</p>
+  <p id="hudDesc">
+    <span class="hud-desc-ja">ジョセフは、私が一週間かけて育てた石です。キューブを引っ張ると、彼のログがかたまりとなってこぼれ出ます——心拍、触れた時間、天気、居場所。かたまりをクリックして読む。</span>
+    <span class="hud-desc-en">Joseph is a stone I have raised for a week. Pull the cube to release clusters from his log — heart rate, touch duration, weather, where he was. Click a cluster to read.</span>
+  </p>
+</div>
+
+<div class="hud hud-meta">
+  SPECIMEN — Stone Joseph, 8.02kg<br>
+  OBSERVATION — 06.29 – 07.03
+</div>
+
+<div class="hud hud-hint">
+  pull to release clusters · click to read<br>
+  drag to move · scroll to zoom
+</div>
+
+<div class="panel-backdrop" id="panelBackdrop">
+  <div class="panel-card" id="panelCard">
+    <button class="panel-close" id="panelClose">×</button>
+    <div id="panelContent"></div>
+  </div>
+</div>
+
+<script>
+/* =========================================================
+   ARCHIVE DATA — 7 days · 30 nodes · all distinct streams
+   ========================================================= */
+const DAYS = [
+  {
+    day: 1, date: "2025.06.29", status: "ignored",
+    request: "Go outside and raise your heart rate above 120 bpm.",
+    nodes: [
+      { stream: "HEART RATE", body: "Baseline held at 68–74 bpm for 11h 22m.\nNo elevation event detected.\nApple Watch · wrist sensor · continuous." },
+      { stream: "GPS TRACE", body: "Location tag: いえ\n35.614° N, 139.442° E\nSeiseki-Sakuragaoka · Tama.\nDisplacement: 0.0 km." },
+      { stream: "STEP COUNT", body: "847 steps recorded.\nPrimary motion window: 08:12–08:19 (kitchen transit).\nNo outdoor segment logged." },
+      { stream: "STONE LOG", body: "Today Davin placed me on the desk. 9 hours.\nHeart rate data: flatline affection.\nI was not held. I was not moved.\nBored. Lonely.\nClassification: ignored." }
+    ]
+  },
+  {
+    day: 2, date: "2025.06.30", status: "partial",
+    request: "Hold me for at least 20 minutes without looking at your phone.",
+    nodes: [
+      { stream: "CONTACT DURATION", body: "Skin contact: 11m 04s.\nRequest threshold: 20m 00s.\nGap intervals suggest phone pickup at 04:30, 07:12." },
+      { stream: "SCREEN TIME", body: "Phone active: 6h 41m.\nPickup count: 94.\nLongest idle stretch during hold attempt: 4m 18s." },
+      { stream: "WEATHER", body: "Drizzle: 22 minutes.\nHumidity: 84%.\nMood tag: たいくつ" },
+      { stream: "HUMAN NOTE", body: "I tried. Put Joseph on my lap during a lecture video. Kept reaching for my phone. The stone was warm for a while, then I forgot it was there." },
+      { stream: "STONE LOG", body: "Warm lap. Then phone. Then nothing.\nForgotten mid-warmth. Bored.\nI wanted to stay held longer." }
+    ]
+  },
+  {
+    day: 3, date: "2025.07.01", status: "done",
+    request: "Share your body heat. That means an embrace.",
+    nodes: [
+      { stream: "SKIN TEMPERATURE", body: "Stone surface: 24.0°C → 31.5°C over 45m.\nWrist skin temp: 33.1°C avg.\nThermal transfer rate: gradual, sustained." },
+      { stream: "HEART RATE", body: "Resting: 71 bpm.\nDuring contact: 78–84 bpm.\nNo spike. Quiet elevation only." },
+      { stream: "CONTACT DURATION", body: "Continuous touch: 45m 17s.\nInterruption events: 0.\nLap position · seated · still." },
+      { stream: "GPS TRACE", body: "35.6398° N, 139.4462° E\nTama · indoor fixed.\nAltitude: 47m.\nNo displacement." },
+      { stream: "STONE LOG", body: "Human body heat detected. Affection estimate: 45%.\nThe warmth was real even if the numbers are not.\nHappy, maybe. I do not know what 45% feels like." }
+    ]
+  },
+  {
+    day: 4, date: "2025.07.02", status: "fail",
+    request: "Take me outside. Walk until your heart rate exceeds 120 bpm.",
+    nodes: [
+      { stream: "HEART RATE", body: "Peak: 97 bpm at 14:22.\nTarget: 120 bpm — not reached.\nDuration above 100 bpm: 0 seconds." },
+      { stream: "STEP COUNT", body: "2,341 steps.\nDistance: 1.8 km.\nWalk aborted at campus gate. Return leg slower." },
+      { stream: "WEATHER", body: "Heavy rain: 38 minutes.\nPeak: 12 mm/h.\nStone mood: so sad.\nMood tag: かなしい" },
+      { stream: "GPS TRACE", body: "Lat 35.6210, Lon 139.4412\nSeiseki-Sakuragaoka → corner store.\nMax radius: 340m.\nOutdoor: 18m 40s." },
+      { stream: "HUMAN NOTE", body: "Carried Joseph in my bag. Too embarrassed to walk with a stone. Heart rate never spiked — mostly annoyance, not exertion." },
+      { stream: "STONE LOG", body: "Dark bag. Human heart annoyed, not racing.\nI wanted outside. Lonely in fabric.\nStill waiting." }
+    ]
+  },
+  {
+    day: 5, date: "2025.07.03", status: "done",
+    request: "Move me to the window. Watch the sunset together.",
+    nodes: [
+      { stream: "AMBIENT LIGHT", body: "Lux: 820 → 40 over 22m 08s.\nSpectral shift: warm → null.\nWindow-facing orientation confirmed." },
+      { stream: "GPS / POSITION", body: "35.6405° N, 139.4476° E\nSakuragaoka · shelf B → windowsill C.\nVertical shift: +0.4m." },
+      { stream: "HEART RATE", body: "Seated baseline: 69 bpm.\nSunset window: 72–76 bpm.\nCalm range. No exertion signature." },
+      { stream: "STONE LOG", body: "Red wavelength sustained in visual field.\nVoice vibration pattern classified: tender.\nHappy. Quiet.\nAffection estimate: 68%. I watched the light leave." }
+    ]
+  },
+  {
+    day: 6, date: "2025.06.29", status: "ignored",
+    request: "Wake up at 2am and tell me you are here.",
+    nodes: [
+      { stream: "SLEEP DATA", body: "Sleep duration: 7h 14m.\nDeep sleep: 1h 02m.\nNo wake event at 02:00. No 2am activity." },
+      { stream: "HEART RATE", body: "Nighttime range: 58–64 bpm.\nLowest: 58 bpm at 03:41.\nUndisturbed sleep architecture." },
+      { stream: "MOTION", body: "Stone accelerometer: static 23h 58m.\nLocation: bedside floor.\nTipped once at 07:12 — getting out of bed." },
+      { stream: "REQUEST LOG", body: "Message sent: 02:00:04.\nDelivery: confirmed.\nRead receipt: none.\nResponse: none." },
+      { stream: "STONE LOG", body: "2am ping. No answer.\nLonely on the floor.\nBored of waiting. I wanted a voice." }
+    ]
+  },
+  {
+    day: 7, date: "2025.07.03", status: "done",
+    request: "I won't ask for anything today. Just stay nearby.",
+    nodes: [
+      { stream: "PROXIMITY", body: "Same room as stone: 6h 40m.\nBluetooth proximity tag · intermittent.\nNo explicit contact required. Present anyway." },
+      { stream: "HEART RATE SYNC", body: "HRV coherence: unmeasurable → 87% stable.\nNo shared exertion.\nParallel resting rhythms detected after 16:00." },
+      { stream: "STEP COUNT", body: "1,204 steps.\nSlow day. Stone moved once — to desk corner.\nSteps do not capture staying." },
+      { stream: "HUMAN NOTE", body: "No request today but I kept checking on it. Is this affection or habit? I don't know. I stayed. That should mean something." },
+      { stream: "STONE LOG", body: "Request item: none. Contact item: none.\nYet proximity sustained.\nHappy, quietly. This data fits no category.\nAffection estimate: 91%. Measurement error cannot be ruled out." }
+    ]
+  }
+];
+
+const SCATTER_EXTRA_LOGS = [
+  { id: 'x-w1', day: 2, date: '2025.06.30', status: 'partial', request: '', stream: 'WEATHER', body: 'Heavy rain: 38 minutes.\nPeak: 11 mm/h.\nStone mood: so sad.\nMood tag: かなしい', isDummy: false, face: 1, phase: 0.2 },
+  { id: 'x-g1', day: 2, date: '2025.06.30', status: 'partial', request: '', stream: 'GPS TRACE', body: '35.61° N, 139.44° E\nSeiseki-Sakuragaoka · Tama.\nRadius drift: 90m.\nMood tag: びみょう', isDummy: false, face: 1, phase: 0.5 },
+  { id: 'x-w2', day: 4, date: '2025.07.02', status: 'fail', request: '', stream: 'WEATHER', body: 'Light rain: 52 minutes.\nHumidity: 91%.\nMood tag: しずか', isDummy: false, face: 3, phase: 0.7 },
+  { id: 'x-g2', day: 4, date: '2025.07.02', status: 'fail', request: '', stream: 'GPS TRACE', body: 'Lat 35.6284, Lon 139.4356\nTama · Sekido bridge approach.\nOutdoor segment: 14m 20s.\nMood tag: ふつう', isDummy: false, face: 3, phase: 0.3 },
+  { id: 'x-g3', day: 1, date: '2025.06.29', status: 'ignored', request: '', stream: 'GPS TRACE', body: '35.614° N, 139.442° E\nFixed · apartment desk.\nDisplacement: 0.0 km.\nMood tag: たいくつ', isDummy: false, face: 0, phase: 0.1 },
+  { id: 'x-h1', day: 3, date: '2025.07.01', status: 'done', request: '', stream: 'HUMIDITY', body: 'Relative humidity: 78% → 61%.\nDuration: 2h 10m.\nMood tag: あつい', isDummy: false, face: 2, phase: 0.4 },
+  { id: 'x-w3', day: 5, date: '2025.07.03', status: 'done', request: '', stream: 'WEATHER', body: 'Overcast: 3h 06m.\nNo precipitation.\nMood tag: ねむい', isDummy: false, face: 4, phase: 0.6 },
+  { id: 'x-g4', day: 5, date: '2025.07.03', status: 'done', request: '', stream: 'GPS / POSITION', body: '35.6391° N, 139.4488° E\nWindowsill · Sakuragaoka side street.\nInternal shift: 3.2m.\nMood tag: しあわせ', isDummy: false, face: 4, phase: 0.8 },
+  { id: 'x-n1', day: 6, date: '2025.06.29', status: 'ignored', request: '', stream: 'NOISE FLOOR', body: 'Ambient: 28 dB avg.\nNight plateau.\nMood tag: しずか', isDummy: false, face: 5, phase: 0.2 },
+  { id: 'x-w4', day: 7, date: '2025.07.03', status: 'done', request: '', stream: 'WEATHER', body: 'Heavy rain: 21 minutes.\nEvening burst.\nStone mood: so sad.\nMood tag: かなしい', isDummy: false, face: 5, phase: 0.9 },
+  { id: 'x-g5', day: 7, date: '2025.07.03', status: 'done', request: '', stream: 'GPS TRACE', body: 'Lat 35.6522, Lon 139.4271\nTama center · slow loop.\nMax radius: 680m.\nMood tag: びみょう', isDummy: false, face: 5, phase: 0.4 },
+  { id: 'x-p1', day: 1, date: '2025.06.29', status: 'ignored', request: '', stream: 'BAROMETRIC', body: 'Pressure: 1008 hPa.\nStable 6h.\nMood tag: ふつう', isDummy: false, face: 0, phase: 0.6 },
+  { id: 'x-w5', day: 3, date: '2025.07.01', status: 'done', request: '', stream: 'WEATHER', body: 'Drizzle: 17 minutes.\nCloud ceiling low.\nMood tag: もやもや', isDummy: false, face: 2, phase: 0.2 },
+  { id: 'x-g6', day: 6, date: '2025.06.29', status: 'ignored', request: '', stream: 'GPS TRACE', body: '35.61° N, 139.44° E\nBedside floor · no displacement.\nMood tag: さみしい', isDummy: false, face: 5, phase: 0.5 },
+  { id: 'x-l1', day: 4, date: '2025.07.02', status: 'fail', request: '', stream: 'AMBIENT LIGHT', body: 'Lux: 120 → 40 under cloud.\nTransit to gate aborted.\nMood tag: くらい', isDummy: false, face: 3, phase: 0.1 },
+  { id: 'x-loc1', day: 1, date: '2025.06.29', status: 'ignored', request: '', stream: 'LOCATION', body: 'Location tag: いえ\nSeiseki-Sakuragaoka · desk fixed.\nMood tag: たいくつ', isDummy: false, face: 0, phase: 0.3 },
+  { id: 'x-loc2', day: 3, date: '2025.07.01', status: 'done', request: '', stream: 'LOCATION', body: 'Location tag: こうえん\nTama · bench radius 40m.\nDuration: 22m.\nMood tag: しずか', isDummy: false, face: 2, phase: 0.55 },
+  { id: 'x-loc3', day: 4, date: '2025.07.02', status: 'fail', request: '', stream: 'LOCATION', body: 'Location tag: しんごう\nSekido crossing · wait 52s.\nNot crossed.\nMood tag: びみょう', isDummy: false, face: 3, phase: 0.65 },
+  { id: 'x-loc4', day: 5, date: '2025.07.03', status: 'done', request: '', stream: 'LOCATION', body: 'Location tag: こうえん\nSunset path · slow loop.\nMood tag: しあわせ', isDummy: false, face: 4, phase: 0.35 },
+  { id: 'x-loc5', day: 7, date: '2025.07.03', status: 'done', request: '', stream: 'LOCATION', body: 'Location tag: いえ\nSame room · desk corner.\nMood tag: ふつう', isDummy: false, face: 5, phase: 0.15 },
+  { id: 'x-loc6', day: 2, date: '2025.06.30', status: 'partial', request: '', stream: 'LOCATION', body: 'Location tag: しんごう\nKeio line approach · idle 1m 18s.\nMood tag: もやもや', isDummy: false, face: 1, phase: 0.75 }
+];
+
+const SCATTER_PRESET_SOURCES = SCATTER_EXTRA_LOGS.slice(0, 17);
+const SCATTER_BUNDLE_TOTAL = SCATTER_PRESET_SOURCES.length;
+const CUBE_HANDFUL_REMAINING = 42;
+
+/* dummy stream fragments — graph filler, obsidian-style orphans */
+const DUMMY_STREAMS = [
+  { stream: "BUFFER", body: "Unread signal segment.\n0.3s of accelerometer noise.\nNo assignment." },
+  { stream: "NULL READING", body: "Sensor polled · returned empty.\nTimestamp preserved." },
+  { stream: "DRIFT MARK", body: "GPS offset 0.02m.\nWithin error margin.\nDiscarded." },
+  { stream: "ECHO", body: "Duplicate packet from wrist sensor.\nDiscarded after merge." },
+  { stream: "STATIC", body: "Microphone open 0.1s.\nNo speech detected." },
+  { stream: "GHOST PING", body: "Proximity tag flicker.\nStone may have shifted 1mm." },
+  { stream: "LATENT", body: "HRV sample queued.\nNot yet written to diary." },
+  { stream: "PHANTOM STEP", body: "3 steps attributed to wrist motion.\nFiltered out." }
+];
+
+const nodes = [];
+
+(function buildArchiveNodes() {
+  DAYS.forEach((d, di) => {
+    d.nodes.forEach((nd, ni) => {
+      nodes.push({
+        id: `d${d.day}-n${ni}`,
+        day: d.day,
+        date: d.date,
+        status: d.status,
+        request: d.request,
+        stream: nd.stream,
+        body: nd.body,
+        isDummy: false,
+        face: Math.min(di, 5),
+        phase: Math.random() * Math.PI * 2
+      });
+    });
+
+    const dummyCount = 4 + (di % 2);
+    for (let k = 0; k < dummyCount; k++) {
+      const tpl = DUMMY_STREAMS[(di * 3 + k) % DUMMY_STREAMS.length];
+      nodes.push({
+        id: `d${d.day}-x${k}`,
+        day: d.day,
+        date: d.date,
+        status: d.status,
+        request: d.request,
+        stream: tpl.stream,
+        body: tpl.body,
+        isDummy: true,
+        face: Math.min(di, 5),
+        phase: Math.random() * Math.PI * 2
+      });
+    }
+  });
+  SCATTER_EXTRA_LOGS.forEach(n => nodes.push({ ...n }));
+})();
+
+/* =========================================================
+   3D CUBE — dot lattice · rotation · fisheye lens
+   ========================================================= */
+const canvas = document.getElementById('stage');
+const ctx = canvas.getContext('2d');
+const vignetteEl = document.querySelector('.vignette');
+
+const PAGE2_BG = { r: 10, g: 12, b: 14 };
+const PAGE2_COOL = { r: 16, g: 18, b: 26 };
+const PAGE3_BG = { r: 62, g: 68, b: 76 };
+const PAGE3_MID = { r: 69, g: 77, b: 85 };
+let glowCanvas, glowCtx, grainCanvas, grainCtx, effectBufferKey = '';
+
+const FACE_GRID = 12;
+const CUBE_HALF = 1;
+const FOCAL = 3.8;
+const ROT_SPEED_X = 0.001;
+const ROT_SPEED_Y = 0.0016;
+const CUBE_MOTION_SCALE = 0.7;
+const LENS_RADIUS = 260;
+const LENS_SPREAD = 75;
+const FOCUS_ZOOM = 2.6;
+const FOCUS_ZOOM_EASE = 0.021;
+const WAVE_REVEAL_EASE = 0.0135;
+const LABEL_REVEAL_EASE = 0.0035;
+const SCATTER_LABEL_REVEAL_EASE = LABEL_REVEAL_EASE * 0.2;
+const SCATTER_LABEL_SAMPLE_STEP = 1;
+const SCATTER_LABEL_STROKE = 0.35;
+const SCATTER_LABEL_FONT_WEIGHT = 100;
+const SCATTER_LABEL_PARTICLE_SIZE = 1;
+const SCATTER_LABEL_PARTICLE_OFFSETS = [[0, 0], [0.38, 0.22]];
+const NODE_RAY_STEP = 80 / 9;
+const RAY_MOTION_SCALE = 0.7;
+const RAY_LINK_MIN_SEC = 0.5;
+const RAY_LINK_MAX_SEC = 3;
+const LABEL_FONT_SIZE = 34;
+const LABEL_LINE_HEIGHT = 46;
+const SCATTER_LABEL_FONT_SIZE = LABEL_FONT_SIZE * 2;
+const SCATTER_LABEL_LINE_HEIGHT = LABEL_LINE_HEIGHT * 2;
+const SCATTER_LABEL_REF_MIN = 920;
+const LABEL_OFFSET_X = 120;
+const LABEL_STROKE_WIDTH = 0.6;
+const LABEL_PARTICLE_SIZE = 1;
+const LABEL_WRAP_CHARS = 26;
+const RAY_SEED_RATIO = 17;
+const FISHEYE_GAIN = 2.0;
+const MAGNET_SWITCH_DIST = 44;
+const EASE = 0.1;
+const PIXEL = 2;
+const CUBE_SIZE_FACTOR = 0.3;
+const CUBE_BREATH_AMP = 0.055;
+const MESH_GRAB_RADIUS = 155;
+const MESH_PULL_STIFFNESS = 0.013;
+const MESH_PULL_DAMPING = 0.76;
+const MESH_PULL_AMOUNT = 0.68;
+const MESH_NET_SPREAD = 0.26;
+const CUBE_BODY_PUSH = 0.014;
+const CUBE_BODY_DRAG = 0.81;
+const CUBE_BODY_MAX_V = 1.45;
+const CUBE_BODY_RESISTANCE = 0.42;
+const CUBE_BODY_RETURN_STIFF = 0.0048;
+const CUBE_BODY_RETURN_DAMP = 0.855;
+const CUBE_DRAG_THRESHOLD = 7;
+const SCATTER_DRAG_THRESHOLD = 10;
+const DETACH_NODE_COUNT = 15;
+const DETACH_FLOAT_STIFF = 0.022;
+const DETACH_FLOAT_DAMP = 0.78;
+const DETACH_POP_STIFF = 0.052;
+const DETACH_POP_DAMP = 0.71;
+const DETACH_FLOAT_SETTLE_STIFF = 0.014;
+const DETACH_FLOAT_SETTLE_DAMP = 0.86;
+const DETACH_POP_DIST = 62;
+const DETACH_POP_DIST_VAR = 26;
+const DETACH_POP_FRAMES = 32;
+const DETACH_DRIFT_FRAMES = 130;
+const DETACH_DRIFT_SPEED = 1.05;
+const DETACH_DRIFT_STIFF = 0.028;
+const DETACH_DRIFT_DAMP = 0.82;
+const DETACH_REATTACH_DIST = 1;
+const DETACH_CLUSTER_HIT_PAD = 32;
+const DETACH_CLUSTER_FOCUS_RADIUS = 24;
+const SCATTER_CHUNK_FAN_SPREAD = 1.45;
+const SCATTER_CHUNK_RING_SPREAD = 34;
+const SCATTER_CHUNK_READ_DIM = 0.44;
+const DETACH_LINK_MAX_DIST = 58;
+const DETACH_LINK_STIFF = 0.006;
+const DETACH_POP_OUT_MULT = 3;
+const DETACH_MAX_PULL_DIST = 185;
+const DETACH_MIN_POP_FRAC = 0.06;
+const DETACH_MOTION_SCALE = 0.5;
+const DETACH_VIEWPORT_PAD = 22;
+const DETACH_TRAIL_STEP = 11;
+const LABEL_SAMPLE_STEP = 2;
+const MIN_SCROLL_ZOOM = 0.55;
+const MAX_SCROLL_ZOOM = 4.2;
+
+const FACE_NAMES = ['pz', 'nz', 'px', 'nx', 'py', 'ny'];
+
+let W, H, DPR, t = 0;
+let rotX = 0.35, rotY = 0.55;
+let cubeScale = 1;
+let mouse = { x: -9999, y: -9999, onCanvas: false };
+let lensStrength = 0;
+let magnetNode = null;
+let focusMode = false;
+let focusNode = null;
+let focusZoom = 1;
+let focusZoomTarget = 1;
+let focusPanX = 0;
+let focusPanY = 0;
+let labelReveal = 0;
+let selectedNode = null;
+let scrollZoom = MIN_SCROLL_ZOOM;
+let scrollZoomTarget = MIN_SCROLL_ZOOM;
+let waveReveal = 0;
+let rayTimeSec = 0;
+let cubeDriftX = 0;
+let cubeDriftY = 0;
+let cubeBreath = 1;
+let pageBlend = 1;
+let sphereBlend = 0;
+let cubeDragActive = false;
+let pointerDown = false;
+let dragMoved = false;
+let dragStartX = 0;
+let dragStartY = 0;
+let dragGrabbedCube = false;
+let meshGrabX = 0;
+let meshGrabY = 0;
+let cubeBodyX = 0;
+let cubeBodyY = 0;
+let cubeBodyVelX = 0;
+let cubeBodyVelY = 0;
+let prevMouseX = -9999;
+let prevMouseY = -9999;
+let detachPull = 0;
+let detachPullNx = 0;
+let detachPullNy = 1;
+let scatterDragActive = false;
+let scatterDragPending = false;
+let scatterDragBatch = null;
+let pointerGestureDragged = false;
+let activePointerId = null;
+let lastKnownButtons = 0;
+let labelBuildFrameScheduled = false;
+let pendingLabelDot = null;
+const scatterHitCache = [];
+let detachBatchSeq = 0;
+const scatterBatches = new Map();
+const cubeEvacuatedKeys = new Set();
+let scatterLogPool = [];
+let scatterLogIdx = 0;
+const cubeDotMap = new Map();
+const MESH_NEIGHBORS = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+const labelParticles = [];
+let labelParticleKey = null;
+
+const cubeDots = [];
+const MAX_CURSOR_THREADS = 40;
+const cursorThreads = Array.from({ length: MAX_CURSOR_THREADS }, (_, i) => ({
+  dot: null,
+  alpha: 0,
+  phase: Math.random() * Math.PI * 2,
+  speed: 0.014 + Math.random() * 0.01
+}));
+
+function rand(a, b) { return Math.random() * (b - a) + a; }
+function ease(cur, tgt, rate) { return cur + (tgt - cur) * rate; }
+function smoothstep(edge0, edge1, x) {
+  const t = Math.max(0, Math.min(1, (x - edge0) / (edge1 - edge0)));
+  return t * t * (3 - 2 * t);
+}
+
+function faceUVTo3D(face, u, v) {
+  const h = CUBE_HALF;
+  switch (face) {
+    case 'pz': return { x: u * h, y: v * h, z: h };
+    case 'nz': return { x: u * h, y: v * h, z: -h };
+    case 'px': return { x: h, y: u * h, z: v * h };
+    case 'nx': return { x: -h, y: u * h, z: v * h };
+    case 'py': return { x: u * h, y: h, z: v * h };
+    case 'ny': return { x: u * h, y: -h, z: v * h };
+  }
+}
+
+function clusterCells(faceIdx, dayIndex, count) {
+  const cells = [];
+  const used = new Set();
+  const cx = Math.floor(FACE_GRID / 2) + ((dayIndex % 3) - 1) * 2;
+  const cy = Math.floor(FACE_GRID / 2) + (Math.floor(dayIndex / 3) - 1) * 2;
+  const offsets = [
+    [0, 0], [1, 0], [-1, 0], [0, 1], [0, -1],
+    [1, 1], [-1, 1], [1, -1], [-1, -1],
+    [2, 0], [0, 2], [-2, 0], [0, -2],
+    [2, 1], [1, 2], [-2, 1], [-1, 2]
+  ];
+  for (let k = 0; k < count; k++) {
+    const [dx, dy] = offsets[k % offsets.length];
+    let gi = cx + dx + Math.floor(k / offsets.length);
+    let gj = cy + dy;
+    gi = Math.max(1, Math.min(FACE_GRID - 2, gi));
+    gj = Math.max(1, Math.min(FACE_GRID - 2, gj));
+    const key = faceIdx + ':' + gi + ',' + gj;
+    if (!used.has(key)) {
+      used.add(key);
+      cells.push({ gi, gj });
+    }
+  }
+  return cells;
+}
+
+function buildCube() {
+  cubeDots.length = 0;
+  cubeDotMap.clear();
+
+  FACE_NAMES.forEach((face, fi) => {
+    for (let gi = 0; gi < FACE_GRID; gi++) {
+      for (let gj = 0; gj < FACE_GRID; gj++) {
+        const u = (gi / (FACE_GRID - 1)) * 2 - 1;
+        const v = (gj / (FACE_GRID - 1)) * 2 - 1;
+        const p = faceUVTo3D(face, u, v);
+        const dot = {
+          x3: p.x, y3: p.y, z3: p.z,
+          baseX3: p.x, baseY3: p.y, baseZ3: p.z,
+          face, faceIdx: fi, gi, gj,
+          hasData: false,
+          phase: Math.random() * Math.PI * 2,
+          driftAmp: rand(0.006, 0.022),
+          driftSpeedX: rand(0.003, 0.011),
+          driftSpeedY: rand(0.004, 0.013),
+          driftSpeedZ: rand(0.003, 0.01),
+          driftPhase: Math.random() * Math.PI * 2,
+          organicSeed: Math.random() * 1000,
+          organicAmp: rand(0.035, 0.11),
+          organicEvolve: rand(0.0009, 0.0028),
+          organicMorph: Math.random() * Math.PI * 2,
+          organicPulse: rand(0.5, 1.4),
+          hover: 0,
+          targetHover: 0,
+          selected: false,
+          baseSx: 0, baseSy: 0,
+          sx: 0, sy: 0, sz: 0, depth: 0,
+          drawR: 1.2,
+          meshOx: 0, meshOy: 0,
+          meshVelX: 0, meshVelY: 0,
+          grabInfluence: 0,
+          meshStiffness: MESH_PULL_STIFFNESS,
+          isDetached: false,
+          detachAmt: 0,
+          detachOx: 0,
+          detachOy: 0,
+          detachVelX: 0,
+          detachVelY: 0,
+          detachAlong: 0,
+          detachPerp: 0,
+          detachFloatPhase: 0,
+          detachFloatSpeed: 0.018,
+          detachFloatAmp: 10,
+          detachWorldX: 0,
+          detachWorldY: 0,
+          detachLocked: false,
+          detachAge: 0,
+          detachAwayDist: 0,
+          detachOutNx: 0,
+          detachOutNy: 0,
+          detachReturning: false,
+          detachAbsX: 0,
+          detachAbsY: 0,
+          detachRelX: 0,
+          detachRelY: 0,
+          detachPopRelX: 0,
+          detachPopRelY: 0,
+          detachAwayDistRel: 0,
+          detachBatchId: 0,
+          clusterOffRelX: 0,
+          clusterOffRelY: 0,
+          detachRoamRelX: 0,
+          detachRoamRelY: 0,
+          detachDriftSpeedRel: 1,
+          detachWanderPhase: 0,
+          detachWanderSpeed: 0.014,
+          detachWanderAmp: 8,
+          detachMaxDistFromHome: 0,
+          detachReturnAge: 0,
+          cubeEvacuated: false
+        };
+        cubeDots.push(dot);
+        cubeDotMap.set(fi + ':' + gi + ',' + gj, dot);
+      }
+    }
+  });
+
+  const byFace = [[], [], [], [], [], []];
+  nodes.forEach(n => {
+    const f = Math.max(0, Math.min(5, n.face | 0));
+    n.face = f;
+    byFace[f].push(n);
+  });
+
+  DAYS.forEach((d, di) => {
+    const faceIdx = Math.min(di, 5);
+    const dayNodes = byFace[faceIdx].filter(n => n.day === d.day);
+    const cells = clusterCells(faceIdx, di, dayNodes.length);
+    dayNodes.forEach((n, i) => {
+      const cell = cells[i];
+      if (!cell) return;
+      const dot = cubeDotMap.get(faceIdx + ':' + cell.gi + ',' + cell.gj);
+      if (!dot) return;
+      Object.assign(dot, {
+        hasData: true,
+        id: n.id,
+        day: n.day,
+        date: n.date,
+        status: n.status,
+        request: n.request,
+        stream: n.stream,
+        body: n.body,
+        isDummy: n.isDummy,
+        phase: n.phase
+      });
+    });
+  });
+  applyCubeEvacuationState();
+  resetScatterLogPool();
+}
+
+function cubeCellKey(dot) {
+  return dot.faceIdx + ':' + dot.gi + ',' + dot.gj;
+}
+
+function evacuateCubeDot(dot) {
+  dot.cubeEvacuated = true;
+  dot.meshOx = 0;
+  dot.meshOy = 0;
+  dot.meshVelX = 0;
+  dot.meshVelY = 0;
+  dot.hover = 0;
+  dot.targetHover = 0;
+  dot.grabInfluence = 0;
+  cubeEvacuatedKeys.add(cubeCellKey(dot));
+}
+
+function applyCubeEvacuationState() {
+  for (const key of cubeEvacuatedKeys) {
+    const dot = cubeDotMap.get(key);
+    if (dot) evacuateCubeDot(dot);
+  }
+}
+
+function countCubeLatticeVisible() {
+  return cubeDots.filter(d => !d.cubeEvacuated && !d.detachLocked).length;
+}
+
+function syncCubeDepletionAfterBatch() {
+  const batchCount = Math.min(scatterBatches.size, SCATTER_BUNDLE_TOTAL);
+  const total = cubeDots.length;
+  const targetVisible = CUBE_HANDFUL_REMAINING +
+    (total - CUBE_HANDFUL_REMAINING) * (SCATTER_BUNDLE_TOTAL - batchCount) / SCATTER_BUNDLE_TOTAL;
+  const target = Math.max(CUBE_HANDFUL_REMAINING, Math.round(targetVisible));
+
+  let visible = countCubeLatticeVisible();
+  if (visible <= target) return;
+
+  const candidates = cubeDots.filter(d =>
+    !d.cubeEvacuated && !d.detachLocked && !d.isDetached && d.sz > -FOCAL + 0.3
+  );
+  for (let i = candidates.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [candidates[i], candidates[j]] = [candidates[j], candidates[i]];
+  }
+
+  const remove = visible - target;
+  for (let i = 0; i < remove && i < candidates.length; i++) {
+    evacuateCubeDot(candidates[i]);
+  }
+}
+
+function isCubeDotRenderable(dot) {
+  return !dot.cubeEvacuated || dot.detachLocked;
+}
+
+function organicPageBlend() {
+  return Math.max(pageBlend, sphereBlend);
+}
+
+function driftOffset(dot) {
+  const ampScale = 1 + pageBlend * 2.4 + sphereBlend * 1.6;
+  return {
+    x: Math.sin(t * dot.driftSpeedX + dot.driftPhase) * dot.driftAmp * ampScale,
+    y: Math.cos(t * dot.driftSpeedY + dot.driftPhase * 1.17) * dot.driftAmp * ampScale,
+    z: Math.sin(t * dot.driftSpeedZ + dot.driftPhase * 0.83) * dot.driftAmp * 0.7 * ampScale
+  };
+}
+
+function organicDisplacement(dot) {
+  const blend = organicPageBlend();
+  if (blend < 0.001) return { x: 0, y: 0, z: 0 };
+
+  const morph = dot.organicMorph + t * dot.organicEvolve;
+  const pulse = 0.55 + 0.45 * Math.sin(t * 0.0045 + dot.organicPulse + morph * 0.3);
+  const amp = dot.organicAmp * blend * pulse * (1 + sphereBlend * 0.35);
+
+  const waveX = Math.sin(t * dot.driftSpeedX * 2.4 + dot.organicSeed) * amp;
+  const waveY = Math.cos(t * dot.driftSpeedY * 1.85 + morph) * amp * 0.92;
+  const waveZ = Math.sin(t * dot.driftSpeedZ * 2.1 + morph * 1.35 + dot.organicSeed * 0.01) * amp * 0.78;
+
+  const len = Math.hypot(dot.baseX3, dot.baseY3, dot.baseZ3) || 1;
+  const bulge = Math.sin(morph + t * 0.0032 + dot.driftPhase) * (0.11 * pageBlend + 0.06 * sphereBlend);
+  const nx = dot.baseX3 / len;
+  const ny = dot.baseY3 / len;
+  const nz = dot.baseZ3 / len;
+
+  let ox = waveX + nx * bulge;
+  let oy = waveY + ny * bulge * 0.88;
+  let oz = waveZ + nz * bulge * 0.82;
+
+  let nWaveX = 0;
+  let nWaveY = 0;
+  let nWaveZ = 0;
+  let nCount = 0;
+  for (const [dg, dj] of MESH_NEIGHBORS) {
+    const neighbor = cubeDotMap.get(dot.faceIdx + ':' + (dot.gi + dg) + ',' + (dot.gj + dj));
+    if (!neighbor) continue;
+    const nm = neighbor.organicMorph + t * neighbor.organicEvolve * 0.4;
+    nWaveX += Math.sin(nm + neighbor.organicSeed * 0.01) * neighbor.organicAmp;
+    nWaveY += Math.cos(nm * 1.08) * neighbor.organicAmp;
+    nWaveZ += Math.sin(nm * 0.92) * neighbor.organicAmp * 0.75;
+    nCount++;
+  }
+  if (nCount > 0 && blend > 0.12) {
+    const couple = blend * 0.2 / nCount;
+    ox += nWaveX * couple;
+    oy += nWaveY * couple;
+    oz += nWaveZ * couple;
+  }
+
+  return { x: ox, y: oy, z: oz };
+}
+
+function sphereMorphPosition(dot, morph) {
+  if (morph < 0.001) return { x: dot.x3, y: dot.y3, z: dot.z3 };
+
+  const bx = dot.baseX3;
+  const by = dot.baseY3;
+  const bz = dot.baseZ3;
+  const len = Math.hypot(bx, by, bz) || 1;
+  const nx = bx / len;
+  const ny = by / len;
+  const nz = bz / len;
+  const theta = Math.atan2(ny, nx);
+  const phi = Math.acos(Math.max(-1, Math.min(1, nz)));
+
+  const ripple = 1
+    + Math.sin(dot.organicMorph + t * 0.0042) * dot.organicAmp * 1.1
+    + Math.cos(theta * 3 + dot.organicSeed * 0.01) * 0.045
+    + Math.sin(phi * 4 + t * 0.0028 + dot.driftPhase) * 0.038
+    + Math.sin(t * 0.0035 + dot.organicPulse) * 0.022;
+
+  const radius = CUBE_HALF * 0.97 * ripple;
+  const tx = nx * radius;
+  const ty = ny * radius;
+  const tz = nz * radius;
+
+  return {
+    x: dot.x3 + (tx - dot.x3) * morph,
+    y: dot.y3 + (ty - dot.y3) * morph,
+    z: dot.z3 + (tz - dot.z3) * morph
+  };
+}
+
+function updateOrganicEvolution() {
+  const blend = organicPageBlend();
+  if (blend < 0.001) return;
+  for (const dot of cubeDots) {
+    dot.organicMorph += dot.organicEvolve * (0.55 + blend * 0.95 + sphereBlend * 0.35) * CUBE_MOTION_SCALE;
+  }
+}
+
+function rotatePoint(p) {
+  let { x, y, z } = p;
+  const cy = Math.cos(rotY), sy = Math.sin(rotY);
+  let nx = x * cy + z * sy;
+  let nz = -x * sy + z * cy;
+  x = nx; z = nz;
+
+  const cx = Math.cos(rotX), sx = Math.sin(rotX);
+  let ny = y * cx - z * sx;
+  nz = y * sx + z * cx;
+  y = ny; z = nz;
+
+  return { x, y, z };
+}
+
+function effectiveCubeScale() {
+  return cubeScale * scrollZoom;
+}
+
+function activeLensRadius() {
+  return LENS_RADIUS * scrollZoom;
+}
+
+function activeLensSpread() {
+  return LENS_SPREAD * scrollZoom;
+}
+
+function activeMagnetSwitchDist() {
+  return MAGNET_SWITCH_DIST * scrollZoom;
+}
+
+function updateCubeDrift() {
+  const amp = Math.min(W, H) * 0.14 * (1 + pageBlend * 0.45 + sphereBlend * 0.22);
+  const motion = focusMode ? 0.3 : (cubeDragActive ? 0.35 : 1);
+  const mt = t * CUBE_MOTION_SCALE;
+  cubeDriftX = (
+    Math.sin(mt * 0.0021) * amp +
+    Math.sin(mt * 0.00125 + 0.9) * amp * 0.42 +
+    Math.cos(mt * 0.00085 + 2.2) * amp * 0.18
+  ) * motion;
+  cubeDriftY = (
+    Math.cos(mt * 0.00175 + 0.35) * amp * 0.78 +
+    Math.sin(mt * 0.00105 + 1.7) * amp * 0.34 +
+    Math.sin(mt * 0.0007 + 4.1) * amp * 0.15
+  ) * motion;
+  cubeBreath = 1
+    + Math.sin(mt * 0.011) * CUBE_BREATH_AMP * (1 + pageBlend * 2.1)
+    + Math.sin(mt * 0.0065 + 1.4) * CUBE_BREATH_AMP * 0.38 * (1 + pageBlend * 1.4)
+    + Math.sin(mt * 0.0038 + dotOrganicGlobal()) * CUBE_BREATH_AMP * 0.55 * pageBlend
+    + Math.sin(mt * 0.0029 + dotOrganicGlobal() * 0.6) * CUBE_BREATH_AMP * 0.42 * sphereBlend;
+}
+
+function dotOrganicGlobal() {
+  const mt = t * CUBE_MOTION_SCALE;
+  return Math.sin(mt * 0.0011) * 2.1 + Math.cos(mt * 0.00073 + 1.8) * 1.4;
+}
+
+function meshNeighborMean(dot) {
+  let ox = 0;
+  let oy = 0;
+  let count = 0;
+  for (const [dg, dj] of MESH_NEIGHBORS) {
+    const neighbor = cubeDotMap.get(dot.faceIdx + ':' + (dot.gi + dg) + ',' + (dot.gj + dj));
+    if (!neighbor) continue;
+    ox += neighbor.meshOx;
+    oy += neighbor.meshOy;
+    count++;
+  }
+  return count ? { ox: ox / count, oy: oy / count } : null;
+}
+
+function assignMeshGrab(sx, sy) {
+  const grabR = MESH_GRAB_RADIUS * scrollZoom;
+  meshGrabX = sx;
+  meshGrabY = sy;
+  prevMouseX = mouse.x;
+  prevMouseY = mouse.y;
+  for (const dot of cubeDots) {
+    if (dot.sz < -FOCAL + 0.3) {
+      dot.grabInfluence = 0;
+      continue;
+    }
+    const d = Math.hypot(dot.baseSx - sx, dot.baseSy - sy);
+    const inf = smoothstep(grabR, grabR * 0.1, d);
+    dot.grabInfluence = inf * inf;
+    dot.meshStiffness = MESH_PULL_STIFFNESS * (0.28 + 0.72 * (1 - Math.min(1, d / grabR)));
+  }
+
+  assignDetachCluster(sx, sy);
+}
+
+function cancelPeelState() {
+  for (const dot of cubeDots) {
+    if (dot.isDetached && !dot.detachLocked) {
+      dot.isDetached = false;
+      dot.detachAmt = 0;
+      dot.detachOx = 0;
+      dot.detachOy = 0;
+      dot.detachVelX = 0;
+      dot.detachVelY = 0;
+    }
+    dot.grabInfluence = 0;
+  }
+  detachPull = 0;
+}
+
+function resetMeshGrabInfluence() {
+  for (const dot of cubeDots) {
+    dot.grabInfluence = 0;
+  }
+}
+
+function pointerPrimaryDown(e) {
+  if (e && typeof e.buttons === 'number') return (e.buttons & 1) !== 0;
+  return pointerDown;
+}
+
+function clearDragFlags() {
+  pointerDown = false;
+  cubeDragActive = false;
+  dragGrabbedCube = false;
+  scatterDragActive = false;
+  scatterDragPending = false;
+  scatterDragBatch = null;
+  pointerGestureDragged = false;
+  activePointerId = null;
+  resetMeshGrabInfluence();
+}
+
+function shouldReleasePeel() {
+  return (cubeDragActive || hasActivePeel()) && dragMoved;
+}
+
+function finishPointerRelease(e) {
+  if (e?.button != null && e.button !== 0) return;
+  if (e?.pointerId != null && activePointerId != null && e.pointerId !== activePointerId) {
+    if (!shouldReleasePeel() && !pointerDown) return;
+  }
+
+  lastKnownButtons = 0;
+
+  if (e?.pointerId != null) {
+    try { canvas.releasePointerCapture(e.pointerId); } catch (_) {}
+  }
+
+  const p = e ? getPointer(e) : { x: mouse.x, y: mouse.y };
+  if (isScatterFocus()) {
+    clearDragFlags();
+    dragMoved = false;
+    return;
+  }
+  if (scatterDragPending && scatterDragBatch) {
+    if (!pointerGestureDragged) enterFocusScatterBatch(scatterDragBatch);
+    clearDragFlags();
+    dragMoved = false;
+    pointerGestureDragged = false;
+    return;
+  }
+  if (scatterDragActive && scatterDragBatch) {
+    const batch = scatterDragBatch;
+    tryReattachScatterBatch(batch);
+    if (batch.dots.length) settleScatterBatchAtDrop(batch);
+    clearDragFlags();
+    dragMoved = false;
+    return;
+  }
+  if (pointerDown && !dragMoved) {
+    handleSelectAt(p.x, p.y);
+  }
+  if (shouldReleasePeel()) {
+    releaseDetachBatch();
+  } else if (hasActivePeel()) {
+    cancelPeelState();
+  } else {
+    PullAudio.stop(120);
+  }
+  cubeBodyVelX *= 0.35;
+  cubeBodyVelY *= 0.35;
+  detachPull = 0;
+  clearDragFlags();
+  dragMoved = false;
+}
+
+function syncDragPointerState() {
+  if (pointerDown && lastKnownButtons === 0) {
+    finishPointerRelease(null);
+    return;
+  }
+  if (!pointerDown && shouldReleasePeel()) {
+    finishPointerRelease(null);
+    return;
+  }
+  if (!pointerDown) {
+    if (cubeDragActive || dragGrabbedCube) {
+      cubeDragActive = false;
+      dragGrabbedCube = false;
+    }
+    if (hasActivePeel() && !dragMoved) cancelPeelState();
+  }
+}
+
+function forceReleaseInteraction() {
+  if (shouldReleasePeel()) {
+    releaseDetachBatch();
+  } else if (hasActivePeel()) {
+    cancelPeelState();
+  } else {
+    PullAudio.stop(120);
+  }
+  cubeBodyVelX *= 0.2;
+  cubeBodyVelY *= 0.2;
+  detachPull = 0;
+  clearDragFlags();
+  dragMoved = false;
+  lastKnownButtons = 0;
+}
+
+function abortStuckPointer() {
+  forceReleaseInteraction();
+}
+
+function clearDetachCluster() {
+  scatterBatches.clear();
+  scatterDragActive = false;
+  scatterDragPending = false;
+  scatterDragBatch = null;
+  for (const dot of cubeDots) {
+    reattachDot(dot);
+  }
+  detachPull = 0;
+}
+
+function reattachDot(dot) {
+  dot.isDetached = false;
+  dot.detachLocked = false;
+  dot.detachAmt = 0;
+  dot.detachOx = 0;
+  dot.detachOy = 0;
+  dot.detachVelX = 0;
+  dot.detachVelY = 0;
+  dot.detachAge = 0;
+  dot.detachAwayDist = 0;
+  dot.detachReturning = false;
+  dot.detachAbsX = 0;
+  dot.detachAbsY = 0;
+  dot.detachRelX = 0;
+  dot.detachRelY = 0;
+  dot.detachPopRelX = 0;
+  dot.detachPopRelY = 0;
+  dot.detachAwayDistRel = 0;
+  dot.detachRoamRelX = 0;
+  dot.detachRoamRelY = 0;
+  dot.detachDriftSpeedRel = 1;
+  dot.detachWanderPhase = 0;
+  if (dot.detachBatchId) {
+    removeDotFromScatterBatch(dot);
+  }
+  dot.detachBatchId = 0;
+  dot.detachMaxDistFromHome = 0;
+  dot.detachReturnAge = 0;
+  dot.meshOx = 0;
+  dot.meshOy = 0;
+  dot.meshVelX = 0;
+  dot.meshVelY = 0;
+}
+
+function clampRelToViewport(relX, relY) {
+  const cc = cubeScreenCenter();
+  const absX = cc.x + relX * scrollZoom;
+  const absY = cc.y + relY * scrollZoom;
+  const clampedX = Math.max(DETACH_VIEWPORT_PAD, Math.min(W - DETACH_VIEWPORT_PAD, absX));
+  const clampedY = Math.max(DETACH_VIEWPORT_PAD, Math.min(H - DETACH_VIEWPORT_PAD, absY));
+  return {
+    x: (clampedX - cc.x) / scrollZoom,
+    y: (clampedY - cc.y) / scrollZoom
+  };
+}
+
+function detachAbsFromRel(dot) {
+  const cc = cubeScreenCenter();
+  dot.detachAbsX = cc.x + dot.detachRelX * scrollZoom;
+  dot.detachAbsY = cc.y + dot.detachRelY * scrollZoom;
+}
+
+function clampDetachRel(dot) {
+  const c = clampRelToViewport(dot.detachRelX, dot.detachRelY);
+  dot.detachRelX = c.x;
+  dot.detachRelY = c.y;
+  detachAbsFromRel(dot);
+}
+
+function setDetachRelFromAbs(dot) {
+  const cc = cubeScreenCenter();
+  dot.detachRelX = (dot.detachAbsX - cc.x) / scrollZoom;
+  dot.detachRelY = (dot.detachAbsY - cc.y) / scrollZoom;
+}
+
+function syncDetachAbsToOffsets(dot) {
+  detachAbsFromRel(dot);
+  dot.meshOx = 0;
+  dot.meshOy = 0;
+  dot.meshVelX = 0;
+  dot.meshVelY = 0;
+  dot.detachOx = dot.detachAbsX - dot.baseSx;
+  dot.detachOy = dot.detachAbsY - dot.baseSy;
+}
+
+function detachHomeDist(dot) {
+  detachAbsFromRel(dot);
+  return Math.hypot(dot.detachAbsX - dot.baseSx, dot.detachAbsY - dot.baseSy);
+}
+
+function canReattachDot(dot) {
+  if (!dot.detachLocked) return false;
+  return detachHomeDist(dot) < DETACH_REATTACH_DIST * scrollZoom;
+}
+
+function tryReattachScatter(dot) {
+  if (!dot || !dot.detachLocked) return false;
+  if (!canReattachDot(dot)) return false;
+  reattachDot(dot);
+  if (scatterDragBatch && !scatterDragBatch.dots.length) {
+    scatterDragActive = false;
+    scatterDragPending = false;
+    scatterDragBatch = null;
+  }
+  return true;
+}
+
+function tryReattachScatterBatch(batch) {
+  if (!batch) return;
+  for (const dot of batch.dots.slice()) {
+    syncDetachAbsToOffsets(dot);
+    tryReattachScatter(dot);
+  }
+}
+
+function removeDotFromScatterBatch(dot) {
+  const id = dot.detachBatchId;
+  if (!id) return;
+  const batch = scatterBatches.get(id);
+  if (!batch) return;
+  batch.dots = batch.dots.filter(d => d !== dot);
+  batch.links = batch.links.filter(([a, b]) => a !== dot && b !== dot);
+  batch.springs = batch.springs.filter(([a, b]) => a !== dot && b !== dot);
+  if (batch.dots.length === 0) {
+    scatterBatches.delete(id);
+    if (scatterDragBatch === batch) {
+      scatterDragActive = false;
+      scatterDragPending = false;
+      scatterDragBatch = null;
+    }
+  }
+}
+
+function resetScatterLogPool() {
+  scatterLogPool = nodes.filter(n => !n.isDummy).map(n => ({ ...n }));
+  for (let i = scatterLogPool.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [scatterLogPool[i], scatterLogPool[j]] = [scatterLogPool[j], scatterLogPool[i]];
+  }
+  scatterLogIdx = 0;
+}
+
+function takeScatterLogEntry() {
+  if (!scatterLogPool.length) resetScatterLogPool();
+  return scatterLogPool[scatterLogIdx++ % scatterLogPool.length];
+}
+
+function applyLogEntryToDot(dot, entry) {
+  Object.assign(dot, {
+    hasData: true,
+    id: entry.id,
+    day: entry.day,
+    date: entry.date,
+    status: entry.status,
+    request: entry.request,
+    stream: entry.stream,
+    body: entry.body,
+    isDummy: false
+  });
+}
+
+function truncateExcerpt(text, maxWords = 9) {
+  const clean = text.replace(/\s+/g, ' ').trim();
+  if (!clean) return '';
+  const words = clean.split(' ');
+  if (words.length <= maxWords) return clean;
+  return words.slice(0, maxWords).join(' ') + '…';
+}
+
+function formatScatterMetricJa(dot) {
+  if (!dot?.hasData) return 'よみとれない しんごう';
+  const stream = dot.stream;
+  const body = dot.body;
+  const first = body.split('\n')[0];
+
+  if (stream === 'HEART RATE') {
+    const peak = dot.body.match(/Peak:\s*(\d+)\s*bpm/i);
+    if (peak) return `さいこう しんぴゃく ${peak[1]}`;
+    const during = dot.body.match(/During contact:\s*(\d+)[–-](\d+)\s*bpm/i);
+    if (during) return `さいこう しんぴゃく ${during[2]}`;
+    const range = dot.body.match(/(\d+)[–-](\d+)\s*bpm/i);
+    if (range) return `さいこう しんぴゃく ${range[2]}`;
+    const resting = dot.body.match(/Resting:\s*(\d+)/i);
+    if (resting) return `きょ しんぱく ${resting[1]}`;
+    const night = dot.body.match(/Nighttime range:\s*(\d+)[–-](\d+)/i);
+    if (night) return `さいこう しんぴゃく ${night[2]}`;
+  }
+  if (stream === 'CONTACT DURATION') {
+    const touch = dot.body.match(/Continuous touch:\s*([^\n]+)/i);
+    if (touch) {
+      const mins = touch[1].match(/(\d+)m/i);
+      if (mins) return `れんぞく さわった じかん ${mins[1]} ぷん`;
+      return `れんぞく さわった じかん ${truncateExcerpt(touch[1], 4)}`;
+    }
+    const skin = dot.body.match(/Skin contact:\s*([^\n]+)/i);
+    if (skin) {
+      const mins = skin[1].match(/(\d+)m/i);
+      if (mins) return `れんぞく さわった じかん ${mins[1]} ぷん`;
+      return `れんぞく さわった じかん ${truncateExcerpt(skin[1], 4)}`;
+    }
+  }
+  if (stream === 'STEP COUNT') {
+    const steps = dot.body.match(/^([\d,]+)\s*steps/i);
+    if (steps) return `ほ どう ${steps[1]}`;
+  }
+  if (stream === 'SKIN TEMPERATURE') {
+    const temp = dot.body.match(/(\d+\.?\d*)°C\s*→\s*(\d+\.?\d*)°C/i);
+    if (temp) return `ひふ おんど ${temp[1]}° → ${temp[2]}°`;
+  }
+  if (stream === 'GPS TRACE' || stream === 'GPS / POSITION') {
+    const loc = body.match(/Location tag:\s*([^\n]+)/i);
+    if (loc) return loc[1].trim();
+    const pre = first.match(/^([\d.]+)°\s*N,\s*([\d.]+)°\s*E/i);
+    if (pre) return `${pre[1]}° N, ${pre[2]}° E`;
+    const lat = body.match(/Lat(?:itude)?:\s*([\d.]+)/i);
+    const lon = body.match(/Lon(?:gitude)?:\s*([\d.]+)/i);
+    if (lat && lon) {
+      return `${(+lat[1]).toFixed(2)}° N, ${(+lon[1]).toFixed(2)}° E`;
+    }
+  }
+  if (stream === 'WEATHER') {
+    const heavy = body.match(/Heavy rain:\s*(\d+)\s*minutes?/i);
+    if (heavy) return `おおあめ ${heavy[1]} ぷん`;
+    const light = body.match(/Light rain:\s*(\d+)\s*minutes?/i);
+    if (light) return `あめ ${light[1]} ぷん`;
+    const drizzle = body.match(/Drizzle:\s*(\d+)\s*minutes?/i);
+    if (drizzle) return `きりあめ ${drizzle[1]} ぷん`;
+    const overcast = body.match(/Overcast:\s*(\d+)h\s*(\d+)m/i);
+    if (overcast) return `くもり ${overcast[1]} じ ${overcast[2]} ぷん`;
+  }
+  if (stream === 'HUMIDITY') {
+    const hum = body.match(/Relative humidity:\s*(\d+)%/i) || body.match(/Humidity:\s*(\d+)%/i);
+    if (hum) return `しつど ${hum[1]} パーセント`;
+  }
+  if (stream === 'NOISE FLOOR') {
+    const db = body.match(/Ambient:\s*(\d+)\s*dB/i);
+    if (db) return `ざつおん ${db[1]} dB`;
+  }
+  if (stream === 'BAROMETRIC') {
+    const pa = body.match(/Pressure:\s*(\d+)\s*hPa/i);
+    if (pa) return `きあつ ${pa[1]} hPa`;
+  }
+  if (stream === 'LOCATION') {
+    const loc = body.match(/Location tag:\s*([^\n]+)/i);
+    if (loc) return loc[1].trim();
+  }
+  if (stream === 'STONE LOG') {
+    const affection = dot.body.match(/Affection estimate:\s*(\d+)%/i);
+    if (affection) return `あいじょう ${affection[1]} パーセント`;
+    const classification = dot.body.match(/Classification:\s*(\w+)/i);
+    if (classification) {
+      const cls = classification[1].toLowerCase();
+      const clsJa = cls === 'ignored' ? 'むし' : cls === 'partial' ? 'いちぶ' : cls;
+      return `ぶんるい ${clsJa}`;
+    }
+  }
+  if (stream === 'SLEEP DATA') {
+    const sleep = dot.body.match(/Sleep duration:\s*([^\n]+)/i);
+    if (sleep) return `すいみん ${truncateExcerpt(sleep[1], 4)}`;
+  }
+  if (stream === 'PROXIMITY') {
+    const prox = dot.body.match(/Same room as stone:\s*([^\n]+)/i);
+    if (prox) return `おなじ へや ${truncateExcerpt(prox[1], 4)}`;
+  }
+  if (stream === 'HEART RATE SYNC') {
+    const hrv = dot.body.match(/HRV coherence:\s*([^\n]+)/i);
+    if (hrv) return `しんぴゃく どうき ${truncateExcerpt(hrv[1], 4)}`;
+  }
+  if (stream === 'AMBIENT LIGHT') {
+    const lux = dot.body.match(/Lux:\s*([^\n]+)/i);
+    if (lux) return `ひかり ${truncateExcerpt(lux[1], 5)}`;
+  }
+
+  const streamJa = {
+    'GPS TRACE': 'いち',
+    'GPS / POSITION': 'いどう',
+    'SCREEN TIME': 'がめん じかん',
+    'ACCELEROMETER': 'うごき',
+    'HUMAN NOTE': 'メモ',
+    'MOTION': 'うごき',
+    'REQUEST LOG': 'リクエスト',
+    'STONE LOG': 'いし の きろく',
+    'WEATHER': 'てんき',
+    'HUMIDITY': 'しつど',
+    'NOISE FLOOR': 'ざつおん',
+    'BAROMETRIC': 'きあつ',
+    'LOCATION': 'いち'
+  }[stream] || stream.toLowerCase();
+
+  const nums = first.match(/[\d,.]+(?:\s*bpm|\s*km|\s*steps|\s*°C|%|m\s+\d+s)?/gi);
+  if (nums && nums.length) return `${streamJa} ${nums[0]}`;
+
+  return streamJa;
+}
+
+const SCATTER_DISPLAY_DATES = ['06.29', '06.30', '07.01', '07.02', '07.03'];
+
+const STONE_EMOTION_HIRAGANA = [
+  'たいくつ', 'さみしい', 'うれしい', 'したい', 'しあわせ', 'こわい',
+  'しずか', 'ねむい', 'まってる', 'みてる', 'わすれた', 'あたたかい',
+  'つめたい', 'もやもや', 'きが しない', 'おもい', 'かるい', 'まだ'
+];
+
+const STONE_EMOTION_RULES = [
+  [/bored|flatline|static 23h|nothing\./i, 'たいくつ'],
+  [/lonely|not held|not moved|no answer|no response|read receipt: none|forgotten|alone on the floor/i, 'さみしい'],
+  [/happy|tender|warm lap|warmth was real|quietly/i, 'うれしい'],
+  [/wanted|i want|wanted to/i, 'したい'],
+  [/watched the light|watched the light leave|red wavelength/i, 'みてた'],
+  [/do not know|cannot be ruled|fits no category|maybe\./i, 'わからない'],
+  [/proximity sustained|present anyway|stayed|yet proximity/i, 'そば'],
+  [/warm|heat detected|body heat|warmth/i, 'あたたかい'],
+  [/ignored|classification: ignored/i, 'むし'],
+  [/waiting|still waiting|2am ping/i, 'まってる'],
+  [/embarrass|annoyed|bag/i, 'はずかしい'],
+  [/forgot|phone glow|then nothing/i, 'わすれた'],
+  [/dark bag|floor|bedside floor/i, 'くらい'],
+  [/voice|2am|message sent/i, 'こえ が ほしい']
+];
+
+function findStoneLogForDay(day) {
+  return nodes.find(n => !n.isDummy && n.day === day && n.stream === 'STONE LOG');
+}
+
+function parseStoneEmotionHints(text) {
+  if (!text) return [];
+  const hints = [];
+  const seen = new Set();
+  for (const [re, frag] of STONE_EMOTION_RULES) {
+    if (re.test(text) && !seen.has(frag)) {
+      hints.push(frag);
+      seen.add(frag);
+    }
+  }
+  return hints;
+}
+
+function gatherStoneEmotionPool(dot) {
+  let corpus = '';
+  if (dot.stream === 'STONE LOG') corpus = dot.body;
+  else {
+    const stone = findStoneLogForDay(dot.day);
+    if (stone) corpus = stone.body;
+  }
+  const note = nodes.find(n => !n.isDummy && n.day === dot.day && n.stream === 'HUMAN NOTE');
+  if (note) corpus += '\n' + note.body;
+  const parsed = parseStoneEmotionHints(corpus);
+  return parsed.length ? parsed : STONE_EMOTION_HIRAGANA;
+}
+
+const MONOTONE_MOODS = [
+  'びみょう', 'かなしい', 'しずか', 'ふつう', 'たいくつ', 'さみしい',
+  'ねむい', 'もやもや', 'わからない', 'あつい', 'つめたい', 'きが しない'
+];
+
+function pickMonotoneTone(dot, seed = 0) {
+  const tag = dot.body.match(/Mood tag:\s*([^\n]+)/i);
+  if (tag) return tag[1].trim();
+  if (/so sad|stone mood: sad/i.test(dot.body)) return 'かなしい';
+  if (dot.stream === 'WEATHER' && /heavy rain/i.test(dot.body)) return 'かなしい';
+  const stone = dot.stream === 'STONE LOG' ? dot.body : findStoneLogForDay(dot.day)?.body;
+  const parsed = parseStoneEmotionHints(stone || '');
+  if (parsed.length) return parsed[(seed * 5 + dot.day) % parsed.length];
+  return MONOTONE_MOODS[(seed * 11 + dot.day * 3) % MONOTONE_MOODS.length];
+}
+
+function scatterLabelMode(batchId) {
+  return ['data', 'feeling', 'both'][(Math.max(1, batchId) - 1) % 3];
+}
+
+function formatScatterLabelText(dot, seed = 0, mode = 'both') {
+  const metric = formatScatterMetricJa(dot);
+  const tone = pickMonotoneTone(dot, seed);
+  if (mode === 'data') return metric;
+  if (mode === 'feeling') return tone;
+  return `${metric} ${tone}`;
+}
+
+function scatterDisplayDate(batchId) {
+  return SCATTER_DISPLAY_DATES[Math.max(0, (batchId - 1) % SCATTER_DISPLAY_DATES.length)];
+}
+
+function extractScatterMetricValue(dot) {
+  if (!dot?.hasData) return 50;
+  const { body, stream } = dot;
+  const first = body.split('\n')[0];
+
+  if (stream === 'HEART RATE') {
+    let m = body.match(/Peak:\s*(\d+)/i);
+    if (m) return +m[1];
+    m = body.match(/During contact:\s*(\d+)[–-](\d+)/i);
+    if (m) return +m[2];
+    m = body.match(/(\d+)[–-](\d+)\s*bpm/i);
+    if (m) return +m[2];
+    m = body.match(/Resting:\s*(\d+)/i);
+    if (m) return +m[1];
+    m = body.match(/Nighttime range:\s*(\d+)[–-](\d+)/i);
+    if (m) return +m[2];
+  }
+  if (stream === 'CONTACT DURATION') {
+    let m = body.match(/Continuous touch:[^\n]*?(\d+)m/i) || body.match(/Skin contact:[^\n]*?(\d+)m/i);
+    if (m) return +m[1];
+    m = body.match(/(\d+)m\s*(\d+)s/i);
+    if (m) return +m[1] + +m[2] / 60;
+  }
+  if (stream === 'STEP COUNT') {
+    const m = first.match(/([\d,]+)\s*steps/i);
+    if (m) return +m[1].replace(/,/g, '');
+  }
+  if (stream === 'SKIN TEMPERATURE') {
+    const m = body.match(/(\d+\.?\d*)°C\s*→\s*(\d+\.?\d*)°C/i);
+    if (m) return +m[2];
+  }
+  if (stream === 'STONE LOG') {
+    const m = body.match(/Affection estimate:\s*(\d+)%/i);
+    if (m) return +m[1];
+  }
+  if (stream === 'AMBIENT LIGHT') {
+    const m = body.match(/Lux:\s*([\d.]+)/i);
+    if (m) return +m[1];
+  }
+  if (stream === 'WEATHER') {
+    let m = body.match(/Heavy rain:\s*(\d+)/i) || body.match(/Light rain:\s*(\d+)/i) || body.match(/Drizzle:\s*(\d+)/i);
+    if (m) return +m[1];
+  }
+  if (stream === 'GPS TRACE' || stream === 'GPS / POSITION') {
+    const lat = body.match(/Lat(?:itude)?:\s*([\d.]+)/i) || body.match(/^([\d.]+)°\s*N/i);
+    if (lat) return +lat[1];
+  }
+  if (stream === 'HUMIDITY') {
+    const m = body.match(/(?:Relative )?[Hh]umidity:\s*(\d+)%/);
+    if (m) return +m[1];
+  }
+  if (stream === 'SCREEN TIME') {
+    const m = body.match(/Phone active:\s*(\d+)h\s*(\d+)m/i);
+    if (m) return +m[1] * 60 + +m[2];
+  }
+
+  const nums = body.match(/(\d+\.?\d*)/g);
+  if (nums?.length) return parseFloat(nums[nums.length - 1]);
+  return dot.day ? dot.day * 11 + 40 : 70;
+}
+
+function normalizeScatterMetricValue(value, dot) {
+  const stream = dot?.stream || '';
+  let norm;
+  if (stream === 'HEART RATE') norm = (value - 65) / 60;
+  else if (stream === 'CONTACT DURATION') norm = value / 48;
+  else if (stream === 'STEP COUNT') norm = value / 9000;
+  else if (stream === 'SKIN TEMPERATURE') norm = (value - 24) / 12;
+  else if (stream === 'AMBIENT LIGHT') norm = (Math.log10(Math.max(1, value)) - 1) / 2.4;
+  else if (stream === 'STONE LOG') norm = value / 100;
+  else if (stream === 'SCREEN TIME') norm = value / 420;
+  else if (stream === 'WEATHER') norm = value / 60;
+  else if (stream === 'GPS TRACE' || stream === 'GPS / POSITION') norm = (value - 35.58) / 0.12;
+  else if (stream === 'HUMIDITY') norm = value / 100;
+  else norm = (value % 97) / 97;
+  return Math.max(0, Math.min(1, norm));
+}
+
+const SCATTER_PITCH_RATIOS = [1, 9 / 8, 5 / 4, 3 / 2, 5 / 3];
+
+function scatterMetricToRootHz(dot) {
+  const value = extractScatterMetricValue(dot);
+  const norm = normalizeScatterMetricValue(value, dot);
+  const base = 44;
+  const stepsPerOctave = SCATTER_PITCH_RATIOS.length;
+  const totalOctaves = 4;
+  const totalSteps = stepsPerOctave * totalOctaves;
+  const stepIdx = Math.round(norm * (totalSteps - 1));
+  const octave = Math.floor(stepIdx / stepsPerOctave);
+  const degree = stepIdx % stepsPerOctave;
+  return base * SCATTER_PITCH_RATIOS[degree] * Math.pow(2, octave);
+}
+
+const SCATTER_PRESET_LABEL_MODES = [
+  'both', 'data', 'feeling', 'both', 'both', 'data', 'feeling', 'both',
+  'data', 'both', 'feeling', 'data', 'both', 'feeling', 'both', 'data', 'both'
+];
+
+function buildScatterPresets() {
+  return SCATTER_PRESET_SOURCES.map((entry, idx) => {
+    const dot = { hasData: true, ...entry };
+    const labelMode = SCATTER_PRESET_LABEL_MODES[idx] || 'both';
+    const logMetric = formatScatterLabelText(dot, idx + 1, labelMode);
+    const logDate = SCATTER_DISPLAY_DATES[idx % SCATTER_DISPLAY_DATES.length];
+    return {
+      id: `preset-${String(idx + 1).padStart(2, '0')}`,
+      logDate,
+      labelMode,
+      logMetric,
+      logLine: logDate ? `${logDate} · ${logMetric}` : logMetric,
+      soundRootHz: scatterMetricToRootHz(dot),
+      logEntry: {
+        id: entry.id,
+        day: entry.day,
+        date: entry.date,
+        status: entry.status,
+        request: entry.request || '',
+        stream: entry.stream,
+        body: entry.body
+      }
+    };
+  });
+}
+
+const SCATTER_PRESETS = buildScatterPresets();
+
+function pickScatterPreset() {
+  return SCATTER_PRESETS[Math.floor(Math.random() * SCATTER_PRESETS.length)];
+}
+
+function formatScatterMonthDate(date) {
+  if (!date) return '';
+  const m = date.match(/(?:\d{4}\.)?(\d{1,2})\.(\d{1,2})/);
+  if (m) return `${m[1]}.${m[2]}`;
+  return date;
+}
+
+function formatScatterExcerpt(dot) {
+  const date = formatScatterMonthDate(dot?.date || '');
+  const metric = formatScatterMetricJa(dot);
+  return date ? `${date} · ${metric}` : metric;
+}
+
+function assignBatchLogData(batch) {
+  const preset = pickScatterPreset();
+  batch.presetId = preset.id;
+  batch.logDate = preset.logDate;
+  batch.labelMode = preset.labelMode;
+  batch.logMetric = preset.logMetric;
+  batch.logLine = preset.logLine;
+  batch.logEntry = { ...preset.logEntry };
+  batch.soundRootHz = preset.soundRootHz;
+
+  for (const dot of batch.dots) {
+    applyLogEntryToDot(dot, preset.logEntry);
+  }
+
+  batch.focusDot = batch.dots[Math.floor(batch.dots.length / 2)] || batch.dots[0];
+}
+
+function createScatterBatch(dots) {
+  const id = ++detachBatchSeq;
+  const sorted = dots.slice().sort((a, b) => a.detachAlong - b.detachAlong);
+  const links = [];
+  const springs = [];
+
+  sorted.forEach(d => { d.detachBatchId = id; });
+  const batch = {
+    id,
+    dots: sorted,
+    links,
+    springs,
+    anchorRelX: 0,
+    anchorRelY: 0,
+    focusDot: null,
+    logLine: '',
+    logEntry: null,
+    labelRevealed: false,
+    wasOpened: false,
+    soundEstablished: false,
+    soundRootHz: 0
+  };
+  assignBatchLogData(batch);
+  scatterBatches.set(id, batch);
+  syncCubeDepletionAfterBatch();
+  return batch;
+}
+
+function enterFocusScatterBatch(batch) {
+  const dot = batch.focusDot || batch.dots[0];
+  if (!dot) return;
+  const sameBatch = focusMode && focusNode?.detachBatchId === batch.id;
+  batch.wasOpened = true;
+  PullAudio.unlock();
+  enterFocus(dot, {
+    skipRays: true,
+    instantLabel: sameBatch || !!batch.labelRevealed,
+    resumeSound: sameBatch && !!batch.soundEstablished
+  });
+}
+
+function scatterBatchReadDim(batchId) {
+  const batch = batchId ? scatterBatches.get(batchId) : null;
+  return batch?.wasOpened ? SCATTER_CHUNK_READ_DIM : 1;
+}
+
+function spreadScatterBatchDots(batch) {
+  const dots = batch.dots;
+  const n = dots.length;
+  if (n <= 1) return;
+
+  let cx = 0;
+  let cy = 0;
+  for (const dot of dots) {
+    cx += dot.detachPopRelX;
+    cy += dot.detachPopRelY;
+  }
+  cx /= n;
+  cy /= n;
+
+  dots.forEach((dot, i) => {
+    const angle = (i / n) * Math.PI * 2 + dot.detachFloatPhase * 0.7;
+    const ring = SCATTER_CHUNK_RING_SPREAD * (0.72 + (i % 6) * 0.11);
+    const ox = Math.cos(angle) * ring;
+    const oy = Math.sin(angle) * ring;
+
+    const target = clampRelToViewport(dot.detachPopRelX + ox, dot.detachPopRelY + oy);
+    dot.detachPopRelX = target.x;
+    dot.detachPopRelY = target.y;
+    dot.detachRoamRelX = target.x;
+    dot.detachRoamRelY = target.y;
+    dot.clusterOffRelX = ox * 0.9;
+    dot.clusterOffRelY = oy * 0.9;
+    dot.detachWanderAmp = Math.max(dot.detachWanderAmp, rand(18, 44));
+  });
+}
+
+function getScatterBatchBounds(batch, pad) {
+  let minX = Infinity;
+  let maxX = -Infinity;
+  let minY = Infinity;
+  let maxY = -Infinity;
+  for (const dot of batch.dots) {
+    detachAbsFromRel(dot);
+    minX = Math.min(minX, dot.detachAbsX);
+    maxX = Math.max(maxX, dot.detachAbsX);
+    minY = Math.min(minY, dot.detachAbsY);
+    maxY = Math.max(maxY, dot.detachAbsY);
+  }
+  const p = pad * scrollZoom;
+  return { minX: minX - p, maxX: maxX + p, minY: minY - p, maxY: maxY + p };
+}
+
+function batchClusterHitRadius(batch) {
+  const n = batch?.dots?.length || 1;
+  const base = Math.max(40, 56 * scrollZoom);
+  if (n <= 1) return base * 2.2;
+  if (n <= 3) return base * 1.65;
+  if (n <= 5) return base * 1.3;
+  return base;
+}
+
+function refreshScatterHitCache() {
+  scatterHitCache.length = 0;
+  if (!scatterBatches.size) return;
+
+  const cc = cubeScreenCenter();
+  const z = scrollZoom;
+
+  for (const batch of scatterBatches.values()) {
+    if (!batch.dots.length) continue;
+
+    let minX = Infinity;
+    let maxX = -Infinity;
+    let minY = Infinity;
+    let maxY = -Infinity;
+    let cx = 0;
+    let cy = 0;
+    const clusterR = batchClusterHitRadius(batch);
+
+    for (const dot of batch.dots) {
+      const ax = cc.x + dot.detachRelX * z;
+      const ay = cc.y + dot.detachRelY * z;
+      dot.detachAbsX = ax;
+      dot.detachAbsY = ay;
+      cx += ax;
+      cy += ay;
+      const hitR = Math.max(28, dot.drawR + DETACH_CLUSTER_HIT_PAD * z);
+      minX = Math.min(minX, ax - hitR);
+      maxX = Math.max(maxX, ax + hitR);
+      minY = Math.min(minY, ay - hitR);
+      maxY = Math.max(maxY, ay + hitR);
+    }
+
+    cx /= batch.dots.length;
+    cy /= batch.dots.length;
+    const pad = DETACH_CLUSTER_HIT_PAD * z;
+
+    scatterHitCache.push({
+      batch,
+      minX: minX - pad,
+      maxX: maxX + pad,
+      minY: minY - pad,
+      maxY: maxY + pad,
+      cx,
+      cy,
+      clusterR
+    });
+  }
+}
+
+function findScatterBatchAt(sx, sy) {
+  if (!scatterHitCache.length && scatterBatches.size) refreshScatterHitCache();
+
+  let best = null;
+  let bestDist = Infinity;
+
+  for (const entry of scatterHitCache) {
+    if (sx < entry.minX || sx > entry.maxX || sy < entry.minY || sy > entry.maxY) continue;
+
+    for (const dot of entry.batch.dots) {
+      const hitR = Math.max(28, dot.drawR + DETACH_CLUSTER_HIT_PAD * scrollZoom);
+      const d = Math.hypot(dot.detachAbsX - sx, dot.detachAbsY - sy);
+      if (d <= hitR && d < bestDist) {
+        best = entry.batch;
+        bestDist = d;
+      }
+    }
+
+    const d = Math.hypot(sx - entry.cx, sy - entry.cy);
+    if (d <= entry.clusterR && d < bestDist) {
+      best = entry.batch;
+      bestDist = d;
+    }
+  }
+
+  return best;
+}
+
+function tryActivateScatterBatchAt(sx, sy) {
+  if (isScatterFocus()) return false;
+  refreshScatterHitCache();
+  const batch = findScatterBatchAt(sx, sy);
+  if (!batch) return false;
+  forceReleaseInteraction();
+  enterFocusScatterBatch(batch);
+  return true;
+}
+
+function beginScatterDrag(batch, sx, sy) {
+  const cc = cubeScreenCenter();
+  batch.anchorRelX = (sx - cc.x) / scrollZoom;
+  batch.anchorRelY = (sy - cc.y) / scrollZoom;
+
+  batch.dots.forEach((dot, i) => {
+    dot.detachVelX = 0;
+    dot.detachVelY = 0;
+    const angle = dot.detachFloatPhase + i * 0.62;
+    const r = DETACH_CLUSTER_FOCUS_RADIUS * (0.55 + (i % 5) * 0.18);
+    dot.clusterOffRelX = Math.cos(angle) * r;
+    dot.clusterOffRelY = Math.sin(angle) * r;
+  });
+}
+
+function updateFocusedScatterBatch(batch) {
+  const cc = cubeScreenCenter();
+  batch.anchorRelX = (mouse.x - cc.x) / scrollZoom;
+  batch.anchorRelY = (mouse.y - cc.y) / scrollZoom;
+
+  for (const dot of batch.dots) {
+    const wobble = Math.sin(t * dot.detachFloatSpeed + dot.detachFloatPhase) * dot.detachFloatAmp;
+    const wobbleY = Math.cos(t * dot.detachFloatSpeed * 1.07 + dot.detachFloatPhase) * dot.detachFloatAmp * 0.85;
+    const wRel = wobble / scrollZoom;
+    const wRelY = wobbleY / scrollZoom;
+    const targetRelX = batch.anchorRelX + dot.clusterOffRelX + wRel * 0.55;
+    const targetRelY = batch.anchorRelY + dot.clusterOffRelY + wRelY * 0.5;
+
+    dot.detachRelX = ease(dot.detachRelX, targetRelX, 0.1);
+    dot.detachRelY = ease(dot.detachRelY, targetRelY, 0.1);
+    dot.detachVelX = 0;
+    dot.detachVelY = 0;
+    clampDetachRel(dot);
+  }
+}
+
+function settleScatterBatchAtDrop(batch) {
+  const settledAge = DETACH_POP_FRAMES + 1;
+  for (const dot of batch.dots) {
+    clampDetachRel(dot);
+    dot.detachRoamRelX = dot.detachRelX;
+    dot.detachRoamRelY = dot.detachRelY;
+    dot.detachPopRelX = dot.detachRelX;
+    dot.detachPopRelY = dot.detachRelY;
+    dot.detachVelX = 0;
+    dot.detachVelY = 0;
+    dot.detachAge = settledAge;
+  }
+}
+
+function applyScatterLinkSprings() {
+  // Springs disabled: scattered particles float individually.
+  // Batch grouping is preserved so dragging still gathers the same group.
+}
+
+function cubeScreenCenter() {
+  return {
+    x: W * 0.5 + cubeDriftX + cubeBodyX,
+    y: H * 0.5 + cubeDriftY + cubeBodyY
+  };
+}
+
+function hasFloatingNodes() {
+  return cubeDots.some(d => d.detachLocked);
+}
+
+function hasActivePeel() {
+  return cubeDots.some(d => d.isDetached && !d.detachLocked);
+}
+
+function releaseDetachBatch() {
+  const cc = cubeScreenCenter();
+  const released = [];
+
+  const pullX = mouse.x - meshGrabX;
+  const pullY = mouse.y - meshGrabY;
+  const pullLen = Math.hypot(pullX, pullY);
+  const maxPull = DETACH_MAX_PULL_DIST * scrollZoom;
+  const pullT = Math.min(1, pullLen / maxPull);
+
+  let shotNx;
+  let shotNy;
+  if (pullLen > 3) {
+    shotNx = -pullX / pullLen;
+    shotNy = -pullY / pullLen;
+  } else if (Math.hypot(detachPullNx, detachPullNy) > 0.1) {
+    shotNx = -detachPullNx;
+    shotNy = -detachPullNy;
+  } else {
+    shotNx = 0;
+    shotNy = -1;
+  }
+
+  const maxShoot = rand(145, 265) * DETACH_POP_OUT_MULT;
+  const shootScale = DETACH_MIN_POP_FRAC + (1 - DETACH_MIN_POP_FRAC) * pullT;
+  const shootPush = maxShoot * shootScale;
+  const popVelScale = 0.3 + 0.7 * pullT;
+  const toRelease = cubeDots.filter(d => d.isDetached && !d.detachLocked);
+  toRelease.sort((a, b) => a.detachAlong - b.detachAlong);
+  const releaseCount = toRelease.length;
+  const perpNx = -shotNy;
+  const perpNy = shotNx;
+
+  for (let i = 0; i < releaseCount; i++) {
+    const dot = toRelease[i];
+
+    const curX = dot.baseSx + dot.meshOx + dot.detachOx;
+    const curY = dot.baseSy + dot.meshOy + dot.detachOy;
+
+    const startRelX = (curX - cc.x) / scrollZoom;
+    const startRelY = (curY - cc.y) / scrollZoom;
+
+    const fanT = releaseCount > 1 ? (i / (releaseCount - 1) - 0.5) : 0;
+    const pushAngle = Math.atan2(shotNy, shotNx) + fanT * SCATTER_CHUNK_FAN_SPREAD + rand(-0.24, 0.24) * pullT;
+    const distVar = 0.8 + Math.abs(fanT) * 0.42 + rand(0, 0.3);
+    const pushDist = shootPush * distVar;
+    const peelSpread = dot.detachPerp * 2.1 + dot.detachAlong * 0.55;
+
+    let finalRelX = startRelX + Math.cos(pushAngle) * pushDist + perpNx * peelSpread;
+    let finalRelY = startRelY + Math.sin(pushAngle) * pushDist + perpNy * peelSpread;
+    const finalClamped = clampRelToViewport(finalRelX, finalRelY);
+    finalRelX = finalClamped.x;
+    finalRelY = finalClamped.y;
+
+    const popVel = rand(3.2, 8.2) * DETACH_MOTION_SCALE * popVelScale;
+    dot.detachRelX = startRelX;
+    dot.detachRelY = startRelY;
+    dot.detachPopRelX = finalRelX;
+    dot.detachPopRelY = finalRelY;
+    dot.detachRoamRelX = finalRelX;
+    dot.detachRoamRelY = finalRelY;
+    dot.detachDriftSpeedRel = rand(0.38, 1.65) * DETACH_MOTION_SCALE;
+    dot.detachVelX = Math.cos(pushAngle) * popVel;
+    dot.detachVelY = Math.sin(pushAngle) * popVel;
+    dot.detachWanderPhase = rand(0, Math.PI * 2);
+    dot.detachWanderSpeed = rand(0.008, 0.026) * DETACH_MOTION_SCALE;
+    dot.detachWanderAmp = rand(18, 44);
+    dot.detachFloatSpeed = rand(0.009, 0.034) * DETACH_MOTION_SCALE;
+    dot.detachFloatAmp = rand(4, 18) * scrollZoom * DETACH_MOTION_SCALE;
+    dot.detachAbsX = curX;
+    dot.detachAbsY = curY;
+    dot.detachMaxDistFromHome = pushDist * scrollZoom;
+    dot.detachReturnAge = 0;
+    dot.detachReturning = false;
+    dot.detachLocked = true;
+    dot.detachAmt = 1;
+    dot.detachAge = 0;
+    dot.meshOx *= 0.08;
+    dot.meshOy *= 0.08;
+    released.push(dot);
+  }
+
+  if (released.length >= 1) {
+    const batch = createScatterBatch(released);
+    spreadScatterBatchDots(batch);
+  } else cancelPeelState();
+  PullAudio.release(pullT);
+  detachPull = 0;
+}
+
+function assignDetachCluster(sx, sy) {
+  for (const dot of cubeDots) {
+    if (dot.isDetached && !dot.detachLocked) {
+      dot.isDetached = false;
+      dot.detachAmt = 0;
+      dot.detachOx = 0;
+      dot.detachOy = 0;
+      dot.detachVelX = 0;
+      dot.detachVelY = 0;
+    }
+  }
+  detachPull = 0;
+
+  const grabR = MESH_GRAB_RADIUS * scrollZoom * 0.85;
+  const tipX = mouse.x;
+  const tipY = mouse.y;
+  const candidates = [];
+  for (const dot of cubeDots) {
+    if (dot.detachLocked || dot.cubeEvacuated) continue;
+    if (dot.sz < -FOCAL + 0.3) continue;
+    const toTip = Math.hypot(dot.baseSx - tipX, dot.baseSy - tipY);
+    const toGrab = Math.hypot(dot.baseSx - sx, dot.baseSy - sy);
+    if (toGrab > grabR) continue;
+    candidates.push({ dot, score: toTip - dot.grabInfluence * 18 });
+  }
+  candidates.sort((a, b) => a.score - b.score);
+
+  let picked = candidates.slice(0, DETACH_NODE_COUNT);
+  if (picked.length < DETACH_NODE_COUNT) {
+    const have = new Set(picked.map(p => p.dot));
+    const extra = [];
+    for (const dot of cubeDots) {
+      if (dot.detachLocked || dot.cubeEvacuated || have.has(dot)) continue;
+      if (dot.sz < -FOCAL + 0.3) continue;
+      extra.push({ dot, score: Math.hypot(dot.baseSx - tipX, dot.baseSy - tipY) });
+    }
+    extra.sort((a, b) => a.score - b.score);
+    picked = picked.concat(extra.slice(0, DETACH_NODE_COUNT - picked.length));
+  }
+  if (picked.length < 3) return;
+
+  if (!picked.some(({ dot }) => isArchiveNode(dot))) {
+    let bestArchive = null;
+    let bestDist = Infinity;
+    for (const dot of cubeDots) {
+      if (dot.detachLocked || dot.cubeEvacuated || !isArchiveNode(dot)) continue;
+      if (dot.sz < -FOCAL + 0.3) continue;
+      const d = Math.hypot(dot.baseSx - tipX, dot.baseSy - tipY);
+      if (d < bestDist) {
+        bestDist = d;
+        bestArchive = dot;
+      }
+    }
+    if (bestArchive) {
+      let replaceIdx = 0;
+      let replaceDist = -Infinity;
+      picked.forEach(({ dot }, i) => {
+        const d = Math.hypot(dot.baseSx - tipX, dot.baseSy - tipY);
+        if (d > replaceDist) {
+          replaceDist = d;
+          replaceIdx = i;
+        }
+      });
+      picked[replaceIdx] = { dot: bestArchive, score: 0 };
+    }
+  }
+
+  const pullX = mouse.x - sx;
+  const pullY = mouse.y - sy;
+  const pullLen = Math.hypot(pullX, pullY);
+  if (pullLen > 1) {
+    detachPullNx = pullX / pullLen;
+    detachPullNy = pullY / pullLen;
+  }
+
+  picked.forEach(({ dot }) => {
+    dot.isDetached = true;
+    const peelOffset = rand(-1.05, 1.05);
+    const peelDist = rand(16, 78);
+    dot.detachAlong = Math.cos(peelOffset) * peelDist;
+    dot.detachPerp = Math.sin(peelOffset) * peelDist;
+    dot.detachFloatPhase = Math.random() * Math.PI * 2;
+    dot.detachFloatSpeed = rand(0.009, 0.032);
+    dot.detachFloatAmp = rand(4, 18) * scrollZoom;
+  });
+}
+
+function computeDetachTip(pullX, pullY) {
+  const pullLen = Math.hypot(pullX, pullY);
+  const nx = pullLen > 0.5 ? pullX / pullLen : detachPullNx;
+  const ny = pullLen > 0.5 ? pullY / pullLen : detachPullNy;
+
+  let tipX = meshGrabX;
+  let tipY = meshGrabY;
+  let maxProj = -Infinity;
+
+  for (const dot of cubeDots) {
+    if (!dot.isDetached || dot.detachLocked) continue;
+    const ax = dot.baseSx + dot.meshOx - meshGrabX;
+    const ay = dot.baseSy + dot.meshOy - meshGrabY;
+    const proj = ax * nx + ay * ny;
+    if (proj > maxProj) {
+      maxProj = proj;
+      tipX = dot.baseSx + dot.meshOx;
+      tipY = dot.baseSy + dot.meshOy;
+    }
+  }
+
+  if (maxProj === -Infinity) {
+    tipX = meshGrabX + nx * 24 * scrollZoom;
+    tipY = meshGrabY + ny * 24 * scrollZoom;
+  }
+
+  return { tipX, tipY, nx, ny };
+}
+
+function updateDetachFloat() {
+  if (scatterDragActive && scatterDragBatch && pageBlend > 0.35 && !focusMode) {
+    updateFocusedScatterBatch(scatterDragBatch);
+    applyScatterLinkSprings();
+    return;
+  }
+
+  const floating = hasFloatingNodes();
+  const peeling = hasActivePeel();
+  const buttonUp = !pointerDown || lastKnownButtons === 0;
+
+  if (buttonUp && shouldReleasePeel()) {
+    releaseDetachBatch();
+    cubeDragActive = false;
+    dragGrabbedCube = false;
+    dragMoved = false;
+    lastKnownButtons = 0;
+    if (pointerDown) clearDragFlags();
+  }
+
+  if (pageBlend < 0.35 || focusMode) {
+    if (!cubeDragActive && !hasFloatingNodes()) {
+      for (const dot of cubeDots) {
+        if (!dot.isDetached || dot.detachLocked) continue;
+        dot.detachAmt = ease(dot.detachAmt, 0, 0.08);
+        dot.detachOx *= 0.86;
+        dot.detachOy *= 0.86;
+        if (dot.detachAmt < 0.01) dot.isDetached = false;
+      }
+      detachPull = ease(detachPull, 0, 0.07);
+    }
+    return;
+  }
+
+  const pullX = mouse.x - meshGrabX;
+  const pullY = mouse.y - meshGrabY;
+  const dragDist = Math.hypot(mouse.x - dragStartX, mouse.y - dragStartY);
+
+  if (cubeDragActive && pointerDown) {
+    const targetPull = Math.min(1, dragDist / (92 * scrollZoom));
+    detachPull = ease(detachPull, targetPull, 0.05);
+    if (Math.hypot(pullX, pullY) > 2) {
+      detachPullNx = pullX / Math.hypot(pullX, pullY);
+      detachPullNy = pullY / Math.hypot(pullX, pullY);
+    }
+  } else {
+    detachPull = ease(detachPull, 0, pointerDown ? 0.08 : 0.22);
+  }
+
+  if (buttonUp && !cubeDragActive && peeling && !floating && !dragMoved) {
+    cancelPeelState();
+  }
+
+  if (detachPull < 0.01 && !cubeDragActive && buttonUp && !hasFloatingNodes() && !hasActivePeel()) return;
+
+  if (buttonUp && !cubeDragActive && detachPull < 0.05 && !hasFloatingNodes()) return;
+
+  const { tipX, tipY, nx, ny } = computeDetachTip(pullX, pullY);
+  const px = -ny;
+  const py = nx;
+  const trailBoost = (28 + dragDist * 0.18) * scrollZoom;
+
+  for (const dot of cubeDots) {
+    if (!dot.isDetached) continue;
+
+    const wobble = Math.sin(t * dot.detachFloatSpeed + dot.detachFloatPhase) * dot.detachFloatAmp;
+    const wobbleY = Math.cos(t * dot.detachFloatSpeed * 1.07 + dot.detachFloatPhase) * dot.detachFloatAmp * 0.85;
+
+    if (dot.detachLocked) {
+      if (scatterDragActive && scatterDragBatch && scatterDragBatch.dots.includes(dot)) {
+        dot.detachAmt = 1;
+        continue;
+      }
+
+      dot.detachAge++;
+      dot.detachAmt = 1;
+
+      let relX = dot.detachRelX;
+      let relY = dot.detachRelY;
+      let targetRelX;
+      let targetRelY;
+      let stiff;
+      let damp;
+      const wRel = wobble / scrollZoom;
+      const wRelY = wobbleY / scrollZoom;
+
+      const motionVar = 0.82 + (dot.detachFloatPhase % 1) * 0.36;
+
+      if (dot.detachAge <= DETACH_POP_FRAMES) {
+        dot.detachReturning = false;
+        dot.detachReturnAge = 0;
+        targetRelX = dot.detachPopRelX + wRel * 0.55;
+        targetRelY = dot.detachPopRelY + wRelY * 0.5;
+        stiff = DETACH_POP_STIFF * motionVar * DETACH_MOTION_SCALE;
+        damp = DETACH_POP_DAMP;
+      } else {
+        dot.detachReturning = false;
+        dot.detachWanderPhase += dot.detachWanderSpeed;
+        const wanderX = Math.sin(dot.detachWanderPhase) * dot.detachWanderAmp;
+        const wanderY = Math.cos(dot.detachWanderPhase * 0.83 + dot.detachFloatPhase) * dot.detachWanderAmp * 0.88;
+        targetRelX = dot.detachRoamRelX + wanderX / scrollZoom + wRel * 0.5;
+        targetRelY = dot.detachRoamRelY + wanderY / scrollZoom + wRelY * 0.45;
+        stiff = DETACH_FLOAT_SETTLE_STIFF * (0.55 + motionVar * 0.25) * DETACH_MOTION_SCALE;
+        damp = DETACH_FLOAT_SETTLE_DAMP;
+      }
+
+      dot.detachVelX = (dot.detachVelX + (targetRelX - relX) * stiff) * damp;
+      dot.detachVelY = (dot.detachVelY + (targetRelY - relY) * stiff) * damp;
+      relX += dot.detachVelX;
+      relY += dot.detachVelY;
+      dot.detachRelX = relX;
+      dot.detachRelY = relY;
+      clampDetachRel(dot);
+      dot.detachMaxDistFromHome = Math.max(dot.detachMaxDistFromHome, detachHomeDist(dot));
+      continue;
+    }
+
+    const peel = dot.grabInfluence * detachPull;
+    dot.detachAmt = ease(dot.detachAmt, peel, cubeDragActive ? 0.06 : 0.04);
+    if (dot.detachAmt < 0.004) continue;
+
+    let targetX;
+    let targetY;
+    let stiff = DETACH_FLOAT_STIFF;
+    let damp = DETACH_FLOAT_DAMP;
+    const along = (dot.detachAlong + trailBoost * detachPull) * scrollZoom;
+    const spread = dot.detachPerp * scrollZoom * (0.6 + detachPull * 0.55);
+    targetX = tipX + nx * along + px * spread + wobble * 0.35;
+    targetY = tipY + ny * along + py * spread + wobbleY * 0.32;
+
+    const anchorX = dot.baseSx + dot.meshOx;
+    const anchorY = dot.baseSy + dot.meshOy;
+    const wantOx = (targetX - anchorX) * dot.detachAmt;
+    const wantOy = (targetY - anchorY) * dot.detachAmt;
+
+    dot.detachVelX = (dot.detachVelX + (wantOx - dot.detachOx) * stiff) * damp;
+    dot.detachVelY = (dot.detachVelY + (wantOy - dot.detachOy) * stiff) * damp;
+    dot.detachOx += dot.detachVelX;
+    dot.detachOy += dot.detachVelY;
+
+    const hold = 1 - dot.detachAmt * 0.92;
+    dot.meshOx *= hold;
+    dot.meshOy *= hold;
+  }
+
+  applyScatterLinkSprings();
+}
+
+function finalizeDetachPositions() {
+  for (const dot of cubeDots) {
+    if (!dot.detachLocked) continue;
+    if (scatterDragActive && scatterDragBatch && scatterDragBatch.dots.includes(dot)) {
+      syncDetachAbsToOffsets(dot);
+      continue;
+    }
+    syncDetachAbsToOffsets(dot);
+  }
+}
+
+function updateMeshDeform() {
+  const netOx = new Float32Array(cubeDots.length);
+  const netOy = new Float32Array(cubeDots.length);
+
+  for (let i = 0; i < cubeDots.length; i++) {
+    const neighbor = meshNeighborMean(cubeDots[i]);
+    if (neighbor) {
+      netOx[i] = neighbor.ox;
+      netOy[i] = neighbor.oy;
+    }
+  }
+
+  for (let i = 0; i < cubeDots.length; i++) {
+    const dot = cubeDots[i];
+    if (dot.detachLocked || dot.cubeEvacuated) continue;
+
+    const stiff = dot.meshStiffness || MESH_PULL_STIFFNESS;
+    let targetOx = netOx[i] * MESH_NET_SPREAD;
+    let targetOy = netOy[i] * MESH_NET_SPREAD;
+
+    if (cubeDragActive && pointerDown && !focusMode && dot.grabInfluence > 0.001 && dot.detachAmt < 0.35) {
+      const pullAmt = MESH_PULL_AMOUNT;
+      const pullX = mouse.x - dot.baseSx;
+      const pullY = mouse.y - dot.baseSy;
+      const inf = dot.grabInfluence;
+      targetOx += pullX * inf * pullAmt;
+      targetOy += pullY * inf * pullAmt;
+    }
+
+    dot.meshVelX = (dot.meshVelX + (targetOx - dot.meshOx) * stiff) * MESH_PULL_DAMPING;
+    dot.meshVelY = (dot.meshVelY + (targetOy - dot.meshOy) * stiff) * MESH_PULL_DAMPING;
+    dot.meshOx += dot.meshVelX;
+    dot.meshOy += dot.meshVelY;
+
+    if (!cubeDragActive) {
+      dot.grabInfluence *= 0.9;
+    }
+  }
+}
+
+function updateCubeBodyPull() {
+  if (cubeDragActive && pointerDown && !focusMode) {
+    const dx = mouse.x - prevMouseX;
+    const dy = mouse.y - prevMouseY;
+    const speed = Math.hypot(cubeBodyVelX, cubeBodyVelY);
+    const pushScale = 1 / (1 + speed * CUBE_BODY_RESISTANCE);
+    cubeBodyVelX += dx * CUBE_BODY_PUSH * pushScale;
+    cubeBodyVelY += dy * CUBE_BODY_PUSH * pushScale;
+    cubeBodyVelX *= CUBE_BODY_DRAG;
+    cubeBodyVelY *= CUBE_BODY_DRAG;
+  } else {
+    cubeBodyVelX = (cubeBodyVelX + (-cubeBodyX) * CUBE_BODY_RETURN_STIFF) * CUBE_BODY_RETURN_DAMP;
+    cubeBodyVelY = (cubeBodyVelY + (-cubeBodyY) * CUBE_BODY_RETURN_STIFF) * CUBE_BODY_RETURN_DAMP;
+  }
+
+  const speed = Math.hypot(cubeBodyVelX, cubeBodyVelY);
+  if (speed > CUBE_BODY_MAX_V) {
+    const scale = CUBE_BODY_MAX_V / speed;
+    cubeBodyVelX *= scale;
+    cubeBodyVelY *= scale;
+  }
+
+  cubeBodyX += cubeBodyVelX;
+  cubeBodyY += cubeBodyVelY;
+  prevMouseX = mouse.x;
+  prevMouseY = mouse.y;
+}
+
+function pointerNearScatter(sx, sy) {
+  return !!findScatterBatchAt(sx, sy);
+}
+
+function pointerNearCube(sx, sy) {
+  if (pointerNearScatter(sx, sy)) return false;
+  if (cursorNearCube()) return true;
+  for (const dot of cubeDots) {
+    if (dot.detachLocked || dot.cubeEvacuated) continue;
+    if (dot.sz < -FOCAL + 0.3) continue;
+    const d = Math.hypot(dot.baseSx - sx, dot.baseSy - sy);
+    if (d < Math.max(20, dot.drawR + 18 * scrollZoom)) return true;
+  }
+  return false;
+}
+
+function project3D(x, y, z) {
+  const scale = FOCAL / (FOCAL + z);
+  const scaledCube = effectiveCubeScale();
+  const bx = W * 0.5 + x * cubeBreath * scale * scaledCube + cubeDriftX + cubeBodyX;
+  const by = H * 0.5 + y * cubeBreath * scale * scaledCube + cubeDriftY + cubeBodyY;
+  return {
+    baseSx: bx,
+    baseSy: by,
+    x: W * 0.5 + (bx - W * 0.5) * focusZoom + focusPanX,
+    y: H * 0.5 + (by - H * 0.5) * focusZoom + focusPanY,
+    scale,
+    z
+  };
+}
+
+function cursorNearCube() {
+  if (!mouse.onCanvas) return false;
+  const lensR = activeLensRadius();
+  for (const dot of cubeDots) {
+    if (dot.sz < -FOCAL + 0.3) continue;
+    const d = Math.hypot(dot.baseSx - mouse.x, dot.baseSy - mouse.y);
+    if (d < lensR * 1.35) return true;
+  }
+  return false;
+}
+
+function applyFisheye(px, py, isMagnet) {
+  if (lensStrength < 0.01) return { x: px, y: py, mag: 1 };
+
+  const lensR = activeLensRadius();
+  const lensSpread = activeLensSpread();
+  const dx = px - mouse.x;
+  const dy = py - mouse.y;
+  const dist = Math.hypot(dx, dy);
+  const falloff = dist < 0.5 ? 1 : smoothstep(lensR, 0, dist);
+  const strength = falloff * lensStrength;
+
+  if (strength < 0.001) return { x: px, y: py, mag: 1 };
+
+  if (isMagnet) {
+    const pull = Math.min(1, strength * 0.94 + 0.06);
+    return {
+      x: px + (mouse.x - px) * pull,
+      y: py + (mouse.y - py) * pull,
+      mag: 1 + strength * 0.55 * FISHEYE_GAIN
+    };
+  }
+
+  if (dist < 0.5) return { x: px, y: py, mag: 1 + strength * 0.4 * FISHEYE_GAIN };
+
+  const spread = strength * lensSpread * (1 + dist / lensR * 0.14);
+  return {
+    x: px + (dx / dist) * spread,
+    y: py + (dy / dist) * spread,
+    mag: 1 + strength * 0.42 * FISHEYE_GAIN
+  };
+}
+
+function isArchiveNode(dot) {
+  return dot && dot.hasData && !dot.isDummy;
+}
+
+function findNearestArchiveNode() {
+  let best = null;
+  let bestScore = Infinity;
+  const lensR = activeLensRadius();
+
+  for (const dot of cubeDots) {
+    if (dot.sz < -FOCAL + 0.3) continue;
+    if (!isArchiveNode(dot)) continue;
+    const d = Math.hypot(dot.baseSx - mouse.x, dot.baseSy - mouse.y);
+    if (d > lensR) continue;
+    const score = d - dot.depth * 0.02;
+    if (score < bestScore) {
+      best = dot;
+      bestScore = score;
+    }
+  }
+  return best;
+}
+
+function updateMagnet() {
+  if (!mouse.onCanvas || focusMode || lensStrength < 0.05) {
+    magnetNode = null;
+    return;
+  }
+
+  const lensR = activeLensRadius();
+  const switchDist = activeMagnetSwitchDist();
+  const nearest = findNearestArchiveNode();
+
+  if (!isArchiveNode(magnetNode)) {
+    magnetNode = nearest;
+    return;
+  }
+
+  const dCurrent = Math.hypot(magnetNode.baseSx - mouse.x, magnetNode.baseSy - mouse.y);
+  if (dCurrent > lensR * 1.15) {
+    magnetNode = nearest;
+    return;
+  }
+
+  if (!nearest || nearest === magnetNode) return;
+
+  const dNearest = Math.hypot(nearest.baseSx - mouse.x, nearest.baseSy - mouse.y);
+  if (dNearest < switchDist && dNearest < dCurrent - 10 * scrollZoom) {
+    magnetNode = nearest;
+  }
+}
+
+function ensureEffectBuffers() {
+  const key = W + 'x' + H + '@' + DPR;
+  if (key === effectBufferKey) return;
+  effectBufferKey = key;
+
+  glowCanvas = document.createElement('canvas');
+  glowCanvas.width = Math.ceil(W * DPR);
+  glowCanvas.height = Math.ceil(H * DPR);
+  glowCtx = glowCanvas.getContext('2d');
+
+  const grainScale = 4;
+  grainCanvas = document.createElement('canvas');
+  grainCanvas.width = Math.max(1, Math.ceil(W / grainScale));
+  grainCanvas.height = Math.max(1, Math.ceil(H / grainScale));
+  grainCtx = grainCanvas.getContext('2d');
+  const grainData = grainCtx.createImageData(grainCanvas.width, grainCanvas.height);
+  const pixels = grainData.data;
+  for (let i = 0; i < pixels.length; i += 4) {
+    const v = Math.random() * 255;
+    pixels[i] = pixels[i + 1] = pixels[i + 2] = v;
+    pixels[i + 3] = 16 + Math.random() * 34;
+  }
+  grainCtx.putImageData(grainData, 0, 0);
+}
+
+function lerpChannel(a, b, t) {
+  return Math.round(a + (b - a) * t);
+}
+
+function drawBackground() {
+  let r = 0;
+  let g = 0;
+  let b = 0;
+
+  if (pageBlend > 0.001) {
+    r = lerpChannel(0, PAGE2_BG.r, pageBlend);
+    g = lerpChannel(0, PAGE2_BG.g, pageBlend);
+    b = lerpChannel(0, PAGE2_BG.b, pageBlend);
+  }
+  if (sphereBlend > 0.001) {
+    r = lerpChannel(r, PAGE3_BG.r, sphereBlend);
+    g = lerpChannel(g, PAGE3_BG.g, sphereBlend);
+    b = lerpChannel(b, PAGE3_BG.b, sphereBlend);
+  }
+
+  ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+  ctx.fillRect(0, 0, W, H);
+
+  if (pageBlend > 0.01 && sphereBlend < 0.35) {
+    const cool = ctx.createLinearGradient(0, 0, W, H);
+    cool.addColorStop(0, `rgba(${PAGE2_COOL.r}, ${PAGE2_COOL.g}, ${PAGE2_COOL.b}, ${0.14 * pageBlend})`);
+    cool.addColorStop(0.55, `rgba(${PAGE2_BG.r}, ${PAGE2_BG.g}, ${PAGE2_BG.b}, ${0.04 * pageBlend})`);
+    cool.addColorStop(1, `rgba(8, 10, 18, ${0.2 * pageBlend})`);
+    ctx.fillStyle = cool;
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  if (sphereBlend > 0.01) {
+    const wash = ctx.createRadialGradient(W * 0.5, H * 0.48, 0, W * 0.5, H * 0.5, Math.max(W, H) * 0.72);
+    wash.addColorStop(0, `rgba(${PAGE3_MID.r}, ${PAGE3_MID.g}, ${PAGE3_MID.b}, ${0.16 * sphereBlend})`);
+    wash.addColorStop(0.55, `rgba(${PAGE3_BG.r}, ${PAGE3_BG.g}, ${PAGE3_BG.b}, ${0.05 * sphereBlend})`);
+    wash.addColorStop(1, `rgba(48, 54, 62, ${0.14 * sphereBlend})`);
+    ctx.fillStyle = wash;
+    ctx.fillRect(0, 0, W, H);
+  }
+}
+
+function drawCubeBaseGlow() {
+  if (pageBlend < 0.02) return;
+
+  const cx = W * 0.5 + cubeDriftX + cubeBodyX;
+  const cy = H * 0.5 + cubeDriftY + cubeBodyY + effectiveCubeScale() * 28;
+  const poolW = Math.min(W, H) * 0.72;
+
+  ctx.save();
+  ctx.globalCompositeOperation = 'screen';
+  const pool = ctx.createRadialGradient(cx, cy, 0, cx, cy, poolW);
+  pool.addColorStop(0, `rgba(185, 200, 225, ${0.075 * pageBlend})`);
+  pool.addColorStop(0.35, `rgba(130, 150, 180, ${0.028 * pageBlend})`);
+  pool.addColorStop(1, 'rgba(80, 95, 120, 0)');
+  ctx.fillStyle = pool;
+  ctx.fillRect(cx - poolW, cy - poolW * 0.45, poolW * 2, poolW * 0.9);
+  ctx.restore();
+}
+
+function drawSoftGlowBlob(gx, sx, sy, radius, alpha) {
+  if (alpha < 0.004) return;
+  const grad = gx.createRadialGradient(sx, sy, 0, sx, sy, radius);
+  grad.addColorStop(0, `rgba(210, 220, 238, ${alpha * 0.62})`);
+  grad.addColorStop(0.28, `rgba(165, 180, 205, ${alpha * 0.22})`);
+  grad.addColorStop(0.62, `rgba(120, 138, 165, ${alpha * 0.06})`);
+  grad.addColorStop(1, 'rgba(90, 105, 130, 0)');
+  gx.fillStyle = grad;
+  gx.beginPath();
+  gx.arc(sx, sy, radius, 0, Math.PI * 2);
+  gx.fill();
+}
+
+function drawCubeGlowPass(sorted) {
+  if (pageBlend < 0.02) return;
+
+  ensureEffectBuffers();
+  glowCtx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  glowCtx.clearRect(0, 0, W, H);
+  glowCtx.globalCompositeOperation = 'lighter';
+
+  for (const dot of sorted) {
+    if (dot.sz < -FOCAL + 0.3) continue;
+    if (!isCubeDotRenderable(dot)) continue;
+
+    const depthFade = smoothstep(-FOCAL + 0.5, CUBE_HALF + FOCAL, dot.sz);
+    let alpha = (0.07 + depthFade * 0.38) * pageBlend;
+    if (dot.hasData) alpha += 0.06 * pageBlend;
+    if (dot.detachLocked && dot.detachBatchId && dot !== focusNode) {
+      alpha *= scatterBatchReadDim(dot.detachBatchId);
+    }
+    if (focusMode && dot !== focusNode) alpha *= dot.isRaySeed ? 0.35 : 0.18;
+
+    const grainPulse = 0.84 + 0.16 * Math.sin(t * 0.048 + dot.organicSeed * 0.07 + dot.phase);
+    const radius = dot.drawR * (3.4 + pageBlend * 3.2);
+    drawSoftGlowBlob(glowCtx, dot.sx, dot.sy, radius, alpha * grainPulse);
+  }
+
+  glowCtx.globalCompositeOperation = 'overlay';
+  glowCtx.globalAlpha = 0.32 * pageBlend;
+  glowCtx.imageSmoothingEnabled = false;
+  glowCtx.drawImage(grainCanvas, 0, 0, W, H);
+  glowCtx.globalCompositeOperation = 'lighter';
+  glowCtx.globalAlpha = 1;
+
+  ctx.save();
+  ctx.globalCompositeOperation = 'screen';
+  ctx.globalAlpha = 0.42 + pageBlend * 0.22;
+  ctx.imageSmoothingEnabled = true;
+  ctx.filter = `blur(${5 + pageBlend * 5}px)`;
+  ctx.drawImage(glowCanvas, 0, 0, W, H);
+  ctx.filter = 'none';
+  ctx.imageSmoothingEnabled = false;
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.globalAlpha = 1;
+  ctx.restore();
+}
+
+function drawFilmGrain() {
+  if (pageBlend < 0.02 && sphereBlend < 0.02) return;
+
+  ensureEffectBuffers();
+  ctx.save();
+
+  if (pageBlend > 0.02) {
+    ctx.imageSmoothingEnabled = false;
+    ctx.globalCompositeOperation = 'overlay';
+    ctx.globalAlpha = 0.22 + pageBlend * 0.14;
+    ctx.drawImage(grainCanvas, 0, 0, W, H);
+    ctx.globalCompositeOperation = 'soft-light';
+    ctx.globalAlpha = 0.1 + pageBlend * 0.08;
+    ctx.drawImage(grainCanvas, 0, 0, W, H);
+  }
+
+  if (sphereBlend > 0.02) {
+    ctx.imageSmoothingEnabled = true;
+    ctx.globalCompositeOperation = 'soft-light';
+    ctx.globalAlpha = 0.06 + sphereBlend * 0.05;
+    ctx.drawImage(grainCanvas, 0, 0, W, H);
+  }
+
+  ctx.restore();
+}
+
+function updatePageAtmosphere() {
+  let r = 0;
+  let g = 0;
+  let b = 0;
+  if (pageBlend > 0.001) {
+    r = lerpChannel(0, PAGE2_BG.r, pageBlend);
+    g = lerpChannel(0, PAGE2_BG.g, pageBlend);
+    b = lerpChannel(0, PAGE2_BG.b, pageBlend);
+  }
+  if (sphereBlend > 0.001) {
+    r = lerpChannel(r, PAGE3_BG.r, sphereBlend);
+    g = lerpChannel(g, PAGE3_BG.g, sphereBlend);
+    b = lerpChannel(b, PAGE3_BG.b, sphereBlend);
+  }
+  document.body.style.background = (pageBlend > 0.01 || sphereBlend > 0.01)
+    ? `rgb(${r}, ${g}, ${b})`
+    : '#000000';
+  vignetteEl.classList.toggle('page-evolving', pageBlend > 0.45 && sphereBlend < 0.35);
+  vignetteEl.classList.toggle('page-sphere', sphereBlend > 0.45);
+  canvas.classList.toggle('smooth-stage', sphereBlend > 0.35);
+}
+
+function wireframeEdgeKey(a, b) {
+  const ak = a.faceIdx + ':' + a.gi + ',' + a.gj;
+  const bk = b.faceIdx + ':' + b.gi + ',' + b.gj;
+  return ak < bk ? ak + '|' + bk : bk + '|' + ak;
+}
+
+function drawSphereWireframe() {
+  if (sphereBlend < 0.04) return;
+
+  const hairline = Math.max(0.6, 1.1 / DPR);
+  const drawn = new Set();
+
+  ctx.save();
+  ctx.imageSmoothingEnabled = true;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  for (const dot of cubeDots) {
+    if (dot.sz < -FOCAL + 0.3) continue;
+
+    for (const [dg, dj] of MESH_NEIGHBORS) {
+      const neighbor = cubeDotMap.get(dot.faceIdx + ':' + (dot.gi + dg) + ',' + (dot.gj + dj));
+      if (!neighbor || neighbor.sz < -FOCAL + 0.3) continue;
+
+      const key = wireframeEdgeKey(dot, neighbor);
+      if (drawn.has(key)) continue;
+      drawn.add(key);
+
+      const depthFade = smoothstep(-FOCAL + 0.5, CUBE_HALF + FOCAL, (dot.sz + neighbor.sz) * 0.5);
+      const frontBias = dot.sz > -0.2 && neighbor.sz > -0.2 ? 1 : 0.62;
+      const alpha = (0.12 + depthFade * 0.45) * sphereBlend * frontBias;
+      if (alpha < 0.02) continue;
+
+      ctx.globalAlpha = alpha;
+      ctx.strokeStyle = '#eef2f8';
+      ctx.lineWidth = hairline;
+      ctx.beginPath();
+      ctx.moveTo(dot.sx, dot.sy);
+      ctx.lineTo(neighbor.sx, neighbor.sy);
+      ctx.stroke();
+    }
+  }
+
+  ctx.restore();
+  ctx.globalAlpha = 1;
+}
+
+function resize() {
+  DPR = Math.min(window.devicePixelRatio || 1, 2);
+  W = window.innerWidth;
+  H = window.innerHeight;
+  canvas.width = W * DPR;
+  canvas.height = H * DPR;
+  canvas.style.width = W + 'px';
+  canvas.style.height = H + 'px';
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  ctx.imageSmoothingEnabled = false;
+  cubeScale = Math.min(W, H) * 0.34 * CUBE_SIZE_FACTOR;
+  effectBufferKey = '';
+  clearLabelParticles();
+  buildCube();
+  if (focusNode && isScatterLabelDot(focusNode)) buildLabelParticles(focusNode);
+}
+window.addEventListener('resize', resize);
+
+/* =========================================================
+   PULL AUDIO — drony ethereal tension while dragging cube
+   ========================================================= */
+const PullAudio = (() => {
+  let ctx = null;
+  let master = null;
+  let droneGain = null;
+  let noiseGain = null;
+  let filter = null;
+  let filterLfo = null;
+  let filterLfoGain = null;
+  let oscA = null;
+  let oscB = null;
+  let oscC = null;
+  let noiseSource = null;
+  let engaged = false;
+  let ready = false;
+  let smoothIntensity = 0;
+
+  function tNow() {
+    return ctx ? ctx.currentTime : 0;
+  }
+
+  function ensure() {
+    if (ctx) return ctx;
+    ctx = new (window.AudioContext || window.webkitAudioContext)();
+
+    master = ctx.createGain();
+    master.gain.value = 0;
+
+    droneGain = ctx.createGain();
+    droneGain.gain.value = 0;
+
+    noiseGain = ctx.createGain();
+    noiseGain.gain.value = 0;
+
+    filter = ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = 260;
+    filter.Q.value = 0.65;
+
+    filterLfo = ctx.createOscillator();
+    filterLfo.type = 'sine';
+    filterLfo.frequency.value = 0.09;
+    filterLfoGain = ctx.createGain();
+    filterLfoGain.gain.value = 80;
+
+    oscA = ctx.createOscillator();
+    oscA.type = 'sine';
+    oscA.frequency.value = 55;
+
+    oscB = ctx.createOscillator();
+    oscB.type = 'triangle';
+    oscB.frequency.value = 82.5;
+    oscB.detune.value = 5;
+
+    oscC = ctx.createOscillator();
+    oscC.type = 'sine';
+    oscC.frequency.value = 110;
+    oscC.detune.value = -3;
+
+    const noiseBuffer = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
+    const nd = noiseBuffer.getChannelData(0);
+    let brown = 0;
+    for (let i = 0; i < nd.length; i++) {
+      brown = brown * 0.965 + (Math.random() * 2 - 1) * 0.035;
+      nd[i] = brown;
+    }
+    noiseSource = ctx.createBufferSource();
+    noiseSource.buffer = noiseBuffer;
+    noiseSource.loop = true;
+
+    oscA.connect(droneGain);
+    oscB.connect(droneGain);
+    oscC.connect(droneGain);
+    noiseSource.connect(noiseGain);
+    droneGain.connect(filter);
+    noiseGain.connect(filter);
+    filter.connect(master);
+    master.connect(ctx.destination);
+
+    filterLfo.connect(filterLfoGain);
+    filterLfoGain.connect(filter.frequency);
+
+    oscA.start();
+    oscB.start();
+    oscC.start();
+    noiseSource.start();
+    filterLfo.start();
+
+    ready = true;
+    return ctx;
+  }
+
+  async function unlock() {
+    try {
+      ensure();
+      if (ctx.state === 'suspended') await ctx.resume();
+    } catch (_) {}
+  }
+
+  function ramp(param, value, dur = 0.1) {
+    const t = tNow();
+    param.cancelScheduledValues(t);
+    param.setValueAtTime(param.value, t);
+    param.linearRampToValueAtTime(value, t + dur);
+  }
+
+  function start() {
+    if (!ready || engaged) return;
+    engaged = true;
+    smoothIntensity = 0;
+    ramp(master.gain, 0.055, 0.4);
+    ramp(droneGain.gain, 0.42, 0.45);
+    ramp(noiseGain.gain, 0.06, 0.5);
+  }
+
+  function stop(fadeMs = 300) {
+    if (!ready) return;
+    engaged = false;
+    smoothIntensity = 0;
+    const dur = fadeMs / 1000;
+    ramp(master.gain, 0, dur);
+    ramp(droneGain.gain, 0, dur);
+    ramp(noiseGain.gain, 0, dur);
+  }
+
+  function update(intensity, velocity = 0) {
+    if (!ready || !engaged) return;
+    const i = smoothIntensity += (Math.max(0, Math.min(1, intensity)) - smoothIntensity) * 0.13;
+    const vel = Math.min(1, velocity / 16);
+    const t = tNow();
+
+    oscA.frequency.setTargetAtTime(50 + i * 52 + vel * 10, t, 0.11);
+    oscB.frequency.setTargetAtTime(75 + i * 68 + vel * 12, t, 0.11);
+    oscC.frequency.setTargetAtTime(100 + i * 80, t, 0.14);
+
+    filter.frequency.setTargetAtTime(200 + i * 1050 + vel * 140, t, 0.09);
+    filter.Q.setTargetAtTime(0.5 + i * 2.1, t, 0.11);
+
+    filterLfoGain.gain.setTargetAtTime(60 + i * 160, t, 0.18);
+    filterLfo.frequency.setTargetAtTime(0.06 + i * 0.1, t, 0.18);
+
+    master.gain.setTargetAtTime(0.05 + i * 0.24 + vel * 0.035, t, 0.07);
+    droneGain.gain.setTargetAtTime(0.3 + i * 0.58, t, 0.09);
+    noiseGain.gain.setTargetAtTime(0.03 + i * 0.16, t, 0.1);
+  }
+
+  function release(strength) {
+    if (!ready) return;
+    const s = Math.max(0.12, Math.min(1, strength));
+    const t = tNow();
+    try {
+      const burst = ctx.createOscillator();
+      const burstGain = ctx.createGain();
+      const burstFilter = ctx.createBiquadFilter();
+      burst.type = 'sine';
+      burst.frequency.setValueAtTime(130 + s * 240, t);
+      burst.frequency.exponentialRampToValueAtTime(38 + s * 28, t + 0.58);
+      burstFilter.type = 'lowpass';
+      burstFilter.frequency.setValueAtTime(820, t);
+      burstFilter.frequency.exponentialRampToValueAtTime(180, t + 0.55);
+      burstGain.gain.setValueAtTime(0.0001, t);
+      burstGain.gain.exponentialRampToValueAtTime(0.065 * s, t + 0.035);
+      burstGain.gain.exponentialRampToValueAtTime(0.0001, t + 0.62);
+      burst.connect(burstFilter);
+      burstFilter.connect(burstGain);
+      burstGain.connect(master);
+      burst.start(t);
+      burst.stop(t + 0.68);
+    } catch (_) {}
+  }
+
+  return {
+    unlock,
+    start,
+    stop,
+    update,
+    release,
+    isEngaged: () => engaged,
+    getContext() {
+      ensure();
+      return ctx;
+    }
+  };
+})();
+
+/* =========================================================
+   LABEL ASSEMBLY AUDIO — cathedral organ swell as text forms
+   ========================================================= */
+const LabelAssemblyAudio = (() => {
+  let master = null;
+  let dryGain = null;
+  let wetGain = null;
+  let organGain = null;
+  let organFilter = null;
+  let pipes = [];
+  let active = false;
+  let currentRoot = 82.41;
+
+  function ctx() {
+    return PullAudio.getContext();
+  }
+
+  function tNow() {
+    const c = ctx();
+    return c ? c.currentTime : 0;
+  }
+
+  function swellFromReveal(reveal) {
+    const r = Math.max(0, Math.min(1, reveal));
+    const t = Math.min(r / 0.9, 1);
+    const rise = 1 - Math.pow(1 - t, 2.1);
+    return Math.min(0.95, rise * 0.92 + Math.max(0, r - 0.9) * 0.04);
+  }
+
+  function ensure() {
+    const c = ctx();
+    if (!c) return;
+    if (c.state === 'suspended') c.resume().catch(() => {});
+    if (master) return;
+
+    master = c.createGain();
+    master.gain.value = 0;
+
+    dryGain = c.createGain();
+    dryGain.gain.value = 0.32;
+
+    wetGain = c.createGain();
+    wetGain.gain.value = 0.58;
+
+    organGain = c.createGain();
+    organGain.gain.value = 0;
+
+    organFilter = c.createBiquadFilter();
+    organFilter.type = 'lowpass';
+    organFilter.frequency.value = 620;
+    organFilter.Q.value = 0.28;
+
+    const ranks = [
+      { ratio: 0.5, gain: 0.16 },
+      { ratio: 1, gain: 0.34 },
+      { ratio: 2, gain: 0.2 },
+      { ratio: 3, gain: 0.08 },
+      { ratio: 4, gain: 0.05 },
+      { ratio: 6, gain: 0.03 }
+    ];
+
+    pipes = ranks.map(rank => {
+      const osc = c.createOscillator();
+      const g = c.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = currentRoot * rank.ratio;
+      g.gain.value = rank.gain;
+      osc.connect(g);
+      g.connect(organGain);
+      osc.start();
+      return { osc, gainNode: g, ratio: rank.ratio };
+    });
+
+    organGain.connect(organFilter);
+    organFilter.connect(dryGain);
+
+    const reverbSend = c.createGain();
+    reverbSend.gain.value = 0.62;
+    organFilter.connect(reverbSend);
+
+    [0.053, 0.079, 0.109, 0.149, 0.197, 0.251, 0.317, 0.389].forEach(sec => {
+      const delay = c.createDelay(0.48);
+      delay.delayTime.value = sec;
+      const feedback = c.createGain();
+      feedback.gain.value = 0.44;
+      const damp = c.createBiquadFilter();
+      damp.type = 'lowpass';
+      damp.frequency.value = 980;
+      reverbSend.connect(delay);
+      delay.connect(damp);
+      damp.connect(feedback);
+      feedback.connect(delay);
+      damp.connect(wetGain);
+    });
+
+    dryGain.connect(master);
+    wetGain.connect(master);
+    master.connect(c.destination);
+  }
+
+  function ramp(param, value, dur = 0.12) {
+    const t = tNow();
+    param.cancelScheduledValues(t);
+    param.setValueAtTime(param.value, t);
+    param.linearRampToValueAtTime(value, t + dur);
+  }
+
+  function setRoot(hz) {
+    currentRoot = Math.max(36, Math.min(520, hz));
+    if (!pipes.length) return;
+    const t = tNow();
+    for (const pipe of pipes) {
+      pipe.osc.frequency.setTargetAtTime(currentRoot * pipe.ratio, t, 0.08);
+    }
+  }
+
+  function startBed() {
+    PullAudio.unlock();
+    ensure();
+    if (!master || active) return;
+    active = true;
+  }
+
+  function updateBed(reveal) {
+    ensure();
+    if (!master) return;
+    if (!active) active = true;
+
+    const swell = swellFromReveal(reveal);
+    const t = tNow();
+    const breath = 1 + 0.006 * Math.sin(t * 0.42);
+    const root = currentRoot * (1 + swell * 0.07);
+
+    for (const pipe of pipes) {
+      pipe.osc.frequency.setTargetAtTime(root * pipe.ratio, t, 0.32);
+    }
+
+    organFilter.frequency.setTargetAtTime(380 + swell * 920, t, 0.28);
+    organFilter.Q.setTargetAtTime(0.26, t, 0.3);
+
+    const level = swell * breath;
+    const pullMasterPeak = 0.05 + 0.24;
+    const pullDronePeak = 0.3 + 0.58;
+    organGain.gain.setTargetAtTime(pullDronePeak * 0.78 * level, t, 0.22);
+    master.gain.setTargetAtTime(pullMasterPeak * 0.82 * level, t, 0.22);
+    dryGain.gain.setTargetAtTime(0.3, t, 0.25);
+    wetGain.gain.setTargetAtTime(0.32 + swell * 0.16, t, 0.25);
+  }
+
+  function resumeSustain() {
+    PullAudio.unlock();
+    ensure();
+    if (!master) return;
+    active = true;
+    updateBed(1);
+  }
+
+  function stop(fadeMs = 400) {
+    if (!master) return;
+    active = false;
+    const dur = Math.max(0.08, fadeMs / 1000);
+    ramp(master.gain, 0, dur);
+    ramp(organGain.gain, 0, dur);
+  }
+
+  return {
+    startBed,
+    updateBed,
+    stop,
+    setRoot,
+    resumeSustain,
+    isActive: () => active
+  };
+})();
+
+function scatterLabelAssemblyComplete(clock) {
+  if (!labelParticles.length) return false;
+  let total = 0;
+  let done = 0;
+  for (const p of labelParticles) {
+    if (!p.scatterLabel) continue;
+    total++;
+    const assemble = smoothstep(p.assembleDelay, p.assembleDelay + p.assembleDur, clock);
+    if (assemble >= 0.97) done++;
+  }
+  return total > 0 && done >= total * 0.97;
+}
+
+function updateLabelAssemblyAudio() {
+  if (!isScatterFocus()) {
+    if (LabelAssemblyAudio.isActive()) LabelAssemblyAudio.stop(320);
+    return;
+  }
+
+  const batch = focusNode?.detachBatchId ? scatterBatches.get(focusNode.detachBatchId) : null;
+  const clock = smoothstep(0, 1, labelReveal);
+  const assemblyDone = labelReveal >= 0.992 || scatterLabelAssemblyComplete(clock);
+
+  if (assemblyDone && batch) {
+    batch.soundEstablished = true;
+    if (!batch.soundRootHz) batch.soundRootHz = scatterMetricToRootHz(focusNode);
+  }
+
+  const sustain = batch?.soundEstablished || assemblyDone;
+  if (!sustain && labelReveal <= 0.0001) return;
+
+  LabelAssemblyAudio.startBed();
+  LabelAssemblyAudio.updateBed(sustain ? 1 : labelReveal);
+}
+
+function updatePullAudio() {
+  const dragging = cubeDragActive && !focusMode && pointerDown;
+  if (!dragging) {
+    if (PullAudio.isEngaged()) PullAudio.stop();
+    return;
+  }
+
+  const dragDist = Math.hypot(mouse.x - dragStartX, mouse.y - dragStartY);
+  const page2Pull = true;
+  const intensity = page2Pull
+    ? detachPull
+    : Math.min(1, dragDist / (105 * scrollZoom));
+
+  if (intensity < 0.012 && dragDist < CUBE_DRAG_THRESHOLD) {
+    if (PullAudio.isEngaged()) PullAudio.stop();
+    return;
+  }
+
+  if (!PullAudio.isEngaged()) PullAudio.start();
+  PullAudio.update(intensity, Math.hypot(mouse.x - prevMouseX, mouse.y - prevMouseY));
+}
+
+function dotMorphProgress(dot) {
+  if (!dot.isRaySeed) return 0;
+  return smoothstep(dot.burstDelay, dot.burstDelay + dot.burstDur, waveReveal);
+}
+
+function setupRayBurst(focusDot) {
+  for (const d of cubeDots) {
+    d.isRaySeed = false;
+    d.burstDelay = 1;
+    d.burstDur = 0.25;
+  }
+
+  let cx;
+  let cy;
+  if (focusDot.detachLocked && focusDot.detachAmt > 0.01) {
+    detachAbsFromRel(focusDot);
+    cx = focusDot.detachAbsX;
+    cy = focusDot.detachAbsY;
+  } else {
+    cx = focusDot.sx;
+    cy = focusDot.sy;
+  }
+  const pool = cubeDots.filter(d => d !== focusDot);
+
+  const candidates = pool.filter(d => {
+    const h = (d.faceIdx * 53 + d.gi * 11 + d.gj * 17) % 100;
+    return h < RAY_SEED_RATIO;
+  });
+
+  candidates.sort((a, b) => {
+    const angA = Math.atan2(a.sy - cy, a.sx - cx);
+    const angB = Math.atan2(b.sy - cy, b.sx - cx);
+    return angA - angB;
+  });
+
+  let tempI = 0;
+  let tempWave = 0;
+  let totalWaves = 0;
+  while (tempI < candidates.length) {
+    const waveSize = 2 + ((candidates[tempI].gi + candidates[tempI].faceIdx + tempWave) % 3);
+    tempI += waveSize;
+    tempWave++;
+    totalWaves++;
+  }
+
+  let wave = 0;
+  let i = 0;
+  while (i < candidates.length) {
+    const waveSize = 2 + ((candidates[i].gi + candidates[i].faceIdx + wave) % 3);
+    const delay = totalWaves > 1 ? (wave / (totalWaves - 1)) * 0.9 : 0;
+    const dur = 0.1 + (wave % 3) * 0.025;
+
+    for (let j = 0; j < waveSize && i < candidates.length; j++, i++) {
+      const d = candidates[i];
+      d.isRaySeed = true;
+      d.burstDelay = delay + j * 0.003;
+      d.burstDur = dur;
+      d.rayJitterAmp = rand(4, 12);
+      d.rayWobbleFreq = rand(0.04, 0.12);
+      d.rayWobbleSpeed = rand(0.01, 0.022) * RAY_MOTION_SCALE;
+      d.rayAngleBias = rand(-0.12, 0.12);
+      d.rayStepSkew = rand(0.6, 1.45);
+      d.rayParticleSpeed = rand(0.013, 0.028) * RAY_MOTION_SCALE;
+      d.rayFlowBias = rand(0.8, 1.4);
+    }
+    wave++;
+  }
+}
+
+function rayLinkVisible(dot, linkIndex) {
+  const seed = dot.faceIdx * 97 + dot.gi * 31 + dot.gj * 13 + linkIndex * 53;
+  const period = RAY_LINK_MIN_SEC + (seed % 1000) / 1000 * (RAY_LINK_MAX_SEC - RAY_LINK_MIN_SEC);
+  const phase = ((seed >> 4) % 1000) / 1000 * period;
+  const onFrac = 0.42 + ((seed >> 7) % 100) / 100 * 0.38;
+  return ((rayTimeSec + phase) % period) < period * onFrac;
+}
+
+function clearRayBurst() {
+  for (const d of cubeDots) {
+    d.isRaySeed = false;
+  }
+}
+
+function updateDots() {
+  syncDragPointerState();
+  scrollZoom = ease(scrollZoom, scrollZoomTarget, 0.12);
+  updatePageAtmosphere();
+  updateOrganicEvolution();
+  updateCubeDrift();
+  updateCubeBodyPull();
+  updateMeshDeform();
+  updateDetachFloat();
+  updatePullAudio();
+
+  const lensTarget = cursorNearCube() && !focusMode && !cubeDragActive && !scatterDragActive ? 1 : 0;
+  lensStrength = ease(lensStrength, lensTarget, 0.08);
+
+  updateMagnet();
+
+  focusZoom = ease(focusZoom, focusZoomTarget, FOCUS_ZOOM_EASE);
+  const labelReady = focusMode && (
+    waveReveal > 0.28 || (focusNode?.detachLocked && focusNode?.detachAmt > 0.01)
+  );
+  labelReveal = ease(
+    labelReveal,
+    labelReady ? 1 : 0,
+    isScatterFocus() ? SCATTER_LABEL_REVEAL_EASE : LABEL_REVEAL_EASE
+  );
+  if (isScatterFocus() && focusNode?.detachBatchId) {
+    const batch = scatterBatches.get(focusNode.detachBatchId);
+    if (batch && labelReveal > 0.5) batch.labelRevealed = true;
+  }
+  updateLabelAssemblyAudio();
+  waveReveal = ease(waveReveal, focusMode ? 1 : 0, WAVE_REVEAL_EASE);
+
+  for (const dot of cubeDots) {
+    const morphPos = sphereMorphPosition(dot, sphereBlend);
+    const drift = driftOffset(dot);
+    const organic = organicDisplacement(dot);
+    const r = rotatePoint({
+      x: morphPos.x + drift.x + organic.x,
+      y: morphPos.y + drift.y + organic.y,
+      z: morphPos.z + drift.z + organic.z
+    });
+    const proj = project3D(r.x, r.y, r.z);
+
+    dot.baseSx = proj.baseSx;
+    dot.baseSy = proj.baseSy;
+    dot.sz = r.z;
+    dot.depth = r.z;
+
+    let sx = proj.x;
+    let sy = proj.y;
+    let mag = 1;
+
+    if (dot.detachLocked && dot.detachAmt > 0.01) {
+      detachAbsFromRel(dot);
+      sx = dot.detachAbsX;
+      sy = dot.detachAbsY;
+      mag = 1;
+    } else if (!focusMode) {
+      const fish = applyFisheye(dot.baseSx, dot.baseSy, dot === magnetNode);
+      sx = fish.x + dot.meshOx + dot.detachOx;
+      sy = fish.y + dot.meshOy + dot.detachOy;
+      mag = fish.mag;
+    }
+
+    dot.sx = sx;
+    dot.sy = sy;
+    dot.spreadMag = mag;
+
+    const breath = 1 + Math.sin(t * (0.014 + dot.driftSpeedX * 0.4) + dot.phase) * (0.1 + pageBlend * 0.16 + sphereBlend * 0.08);
+    const baseR = dot.hasData ? (dot.isDummy ? 1.4 : 1.9) : 1.1;
+    const zoomMag = dot === focusNode ? focusZoom : 1;
+    dot.drawR = baseR * proj.scale * effectiveCubeScale() * 0.022 * breath * zoomMag * mag;
+
+    const hitDist = Math.hypot(dot.sx - mouse.x, dot.sy - mouse.y);
+    const hitR = dot.drawR + (dot === magnetNode ? 14 * scrollZoom : 8 * scrollZoom);
+    if (dot.detachLocked) {
+      dot.targetHover = 0;
+    } else {
+      dot.targetHover = hitDist < hitR ? 1 - hitDist / hitR : 0;
+      if (dot === magnetNode) {
+        const md = Math.hypot(dot.baseSx - mouse.x, dot.baseSy - mouse.y);
+        dot.targetHover = Math.max(dot.targetHover, smoothstep(activeLensRadius(), 0, md) * lensStrength);
+      }
+    }
+    dot.hover = ease(dot.hover, dot.targetHover, EASE);
+  }
+
+  finalizeDetachPositions();
+  refreshScatterHitCache();
+  updateCursorThreads();
+
+  if (focusMode && focusNode) {
+    focusPanX = -(focusNode.sx - W * 0.5) * focusZoom;
+    focusPanY = -(focusNode.sy - H * 0.5) * focusZoom;
+  } else {
+    focusPanX = ease(focusPanX, 0, 0.08);
+    focusPanY = ease(focusPanY, 0, 0.08);
+  }
+}
+
+function updateCursorThreads() {
+  const breathCount = 0.5 + 0.5 * Math.sin(t * 0.013);
+  const want = (!mouse.onCanvas || focusMode || lensStrength < 0.05)
+    ? 0
+    : Math.min(MAX_CURSOR_THREADS, Math.max(1, Math.round(breathCount * MAX_CURSOR_THREADS * lensStrength)));
+
+  if (want === 0) {
+    cursorThreads.forEach(slot => {
+      slot.dot = null;
+      slot.alpha = ease(slot.alpha, 0, 0.12);
+    });
+    return;
+  }
+
+  const lensR = activeLensRadius();
+  const candidates = [];
+  for (const dot of cubeDots) {
+    if (!isCubeDotRenderable(dot)) continue;
+    if (dot.sz < -FOCAL + 0.3) continue;
+    const d = Math.hypot(dot.sx - mouse.x, dot.sy - mouse.y);
+    if (d > lensR * 1.15) continue;
+    candidates.push({ dot, d });
+  }
+  candidates.sort((a, b) => a.d - b.d);
+
+  const picks = [];
+  const seen = new Set();
+  if (magnetNode) {
+    picks.push(magnetNode);
+    seen.add(magnetNode);
+  }
+  for (const c of candidates) {
+    if (picks.length >= want) break;
+    if (seen.has(c.dot)) continue;
+    picks.push(c.dot);
+    seen.add(c.dot);
+  }
+
+  for (let i = 0; i < MAX_CURSOR_THREADS; i++) {
+    const slot = cursorThreads[i];
+    slot.dot = picks[i] || null;
+    slot.alpha = ease(slot.alpha, slot.dot ? 1 : 0, 0.11);
+  }
+}
+
+function drawCursorThreads() {
+  if (!mouse.onCanvas || focusMode || lensStrength < 0.03) return;
+
+  const hairline = 1 / DPR;
+
+  for (const slot of cursorThreads) {
+    if (!slot.dot || slot.alpha < 0.02) continue;
+
+    const dot = slot.dot;
+    const breath = 0.45 + 0.55 * (0.5 + 0.5 * Math.sin(t * slot.speed + slot.phase));
+    const dist = Math.hypot(dot.sx - mouse.x, dot.sy - mouse.y);
+    const fade = smoothstep(activeLensRadius() * 1.1, activeLensRadius() * 0.15, dist);
+    const alpha = slot.alpha * lensStrength * breath * fade * 0.38;
+    if (alpha < 0.015) continue;
+
+    const reach = 0.06 + (1 - breath) * 0.05;
+    const x1 = dot.sx + (mouse.x - dot.sx) * reach;
+    const y1 = dot.sy + (mouse.y - dot.sy) * reach;
+
+    ctx.globalAlpha = alpha;
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = hairline;
+    ctx.beginPath();
+    ctx.moveTo(mouse.x, mouse.y);
+    ctx.lineTo(x1, y1);
+    ctx.stroke();
+  }
+}
+
+function snapPixel(v) {
+  return Math.round(v / PIXEL) * PIXEL;
+}
+
+function drawLabelParticle(sx, sy, alpha, size = LABEL_PARTICLE_SIZE) {
+  if (alpha < 0.02) return;
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(snapPixel(sx), snapPixel(sy), size, size);
+}
+
+function drawSmoothDot(sx, sy, radiusPx, alpha) {
+  if (alpha < 0.02) return;
+  const ink = 238 + sphereBlend * 10;
+  ctx.save();
+  ctx.imageSmoothingEnabled = true;
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = `rgb(${ink}, ${ink + 4}, ${ink + 8})`;
+  ctx.beginPath();
+  ctx.arc(sx, sy, Math.max(0.75, radiusPx), 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawSmoothRing(sx, sy, radiusPx, alpha) {
+  if (alpha < 0.02) return;
+  ctx.save();
+  ctx.imageSmoothingEnabled = true;
+  ctx.globalAlpha = alpha;
+  ctx.strokeStyle = '#eef2f8';
+  ctx.lineWidth = Math.max(0.6, 1.1 / DPR);
+  ctx.beginPath();
+  ctx.arc(sx, sy, radiusPx + 2.5, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawPixelDot(sx, sy, radiusPx, alpha) {
+  if (alpha < 0.02) return;
+  const cx = snapPixel(sx);
+  const cy = snapPixel(sy);
+  const span = Math.max(0, Math.round(radiusPx / PIXEL) - 1);
+
+  ctx.globalAlpha = alpha;
+  if (pageBlend > 0.05) {
+    const ink = 224 + pageBlend * 12;
+    ctx.fillStyle = `rgb(${ink}, ${ink + 8}, ${ink + 18})`;
+  } else if (sphereBlend > 0.05) {
+    const ink = 238 + sphereBlend * 10;
+    ctx.fillStyle = `rgb(${ink}, ${ink + 4}, ${ink + 8})`;
+  } else {
+    ctx.fillStyle = '#ffffff';
+  }
+
+  for (let i = -span; i <= span; i++) {
+    ctx.fillRect(cx, cy + i * PIXEL, PIXEL, PIXEL);
+  }
+  for (let i = -span; i <= span; i++) {
+    if (i === 0) continue;
+    ctx.fillRect(cx + i * PIXEL, cy, PIXEL, PIXEL);
+  }
+}
+
+function drawPixelRing(sx, sy, radiusPx, alpha) {
+  if (alpha < 0.02) return;
+  const cx = snapPixel(sx);
+  const cy = snapPixel(sy);
+  const span = Math.max(1, Math.round((radiusPx + PIXEL * 2) / PIXEL));
+
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = '#ffffff';
+
+  const ring = span;
+  for (let i = -ring; i <= ring; i++) {
+    ctx.fillRect(cx + i * PIXEL, cy - ring * PIXEL, PIXEL, PIXEL);
+    ctx.fillRect(cx + i * PIXEL, cy + ring * PIXEL, PIXEL, PIXEL);
+    ctx.fillRect(cx - ring * PIXEL, cy + i * PIXEL, PIXEL, PIXEL);
+    ctx.fillRect(cx + ring * PIXEL, cy + i * PIXEL, PIXEL, PIXEL);
+  }
+}
+
+function wrapText(text, maxLen) {
+  const words = text.split(/\s+/);
+  const lines = [];
+  let line = '';
+  for (const w of words) {
+    const next = line ? line + ' ' + w : w;
+    if (next.length > maxLen) {
+      if (line) lines.push(line);
+      line = w.length > maxLen ? w.slice(0, maxLen - 1) + '…' : w;
+    } else {
+      line = next;
+    }
+  }
+  if (line) lines.push(line);
+  return lines;
+}
+
+function scatterLabelMaxWidth() {
+  if (!W) return 360;
+  return W * (isSmallViewport() ? 0.88 : 0.9);
+}
+
+function wrapTextByChar(text, maxWidth, measure) {
+  const lines = [];
+  let line = '';
+  for (const ch of text) {
+    const next = line + ch;
+    if (!line || measure(next) <= maxWidth) {
+      line = next;
+    } else {
+      lines.push(line);
+      line = ch;
+    }
+  }
+  if (line) lines.push(line);
+  return lines.length ? lines : [''];
+}
+
+function wrapTextToWidth(text, maxWidth, measure) {
+  const trimmed = (text || '').trim();
+  if (!trimmed) return [];
+  if (measure(trimmed) <= maxWidth) return [trimmed];
+
+  if (/[^\s]\s+[^\s]/.test(trimmed)) {
+    const tokens = trimmed.split(/(\s+)/);
+    const lines = [];
+    let line = '';
+    for (const token of tokens) {
+      if (!token) continue;
+      const next = line + token;
+      if (!line || measure(next) <= maxWidth) {
+        line = next;
+      } else {
+        if (line.trim()) lines.push(line.trim());
+        line = token.trimStart();
+      }
+    }
+    if (line.trim()) lines.push(line.trim());
+    return lines.flatMap(l => measure(l) <= maxWidth ? [l] : wrapTextByChar(l, maxWidth, measure));
+  }
+
+  return wrapTextByChar(trimmed, maxWidth, measure);
+}
+
+function measureScatterLabelLines(fragments, dot) {
+  const fontSize = scatterLabelFontSize();
+  const ctx = document.createElement('canvas').getContext('2d');
+  ctx.font = scatterLabelCanvasFont(fontSize, dot);
+  const maxW = scatterLabelMaxWidth();
+  const measure = s => ctx.measureText(s).width;
+  const lines = [];
+  for (const frag of fragments) {
+    lines.push(...wrapTextToWidth(frag, maxW, measure));
+  }
+  return lines;
+}
+
+function isScatterFocus() {
+  return focusMode && focusNode?.detachLocked && focusNode.detachAmt > 0.01;
+}
+
+function isScatterLabelDot(dot) {
+  if (!dot?.detachBatchId) return false;
+  const batch = scatterBatches.get(dot.detachBatchId);
+  return !!batch?.logLine;
+}
+
+function getScatterLabelFragments(batch, dot = null) {
+  if (!batch?.logLine) return [];
+  let raw;
+  if (isSmallViewport()) {
+    const date = batch.logDate || formatScatterMonthDate(batch.logEntry?.date || '');
+    const metric = batch.logMetric || batch.logLine.split(' · ').slice(1).join(' · ') || batch.logLine;
+    raw = [date, metric].filter(Boolean);
+  } else {
+    raw = [batch.logLine];
+  }
+  if (!dot || !raw.length) return raw;
+  return measureScatterLabelLines(raw, dot);
+}
+
+function getLabelFragments(dot) {
+  if (!dot?.hasData) return [];
+  const batch = dot.detachBatchId ? scatterBatches.get(dot.detachBatchId) : null;
+  if (batch?.logLine) return getScatterLabelFragments(batch, dot);
+  return [
+    dot.stream,
+    `DAY ${String(dot.day).padStart(2, '0')} · ${dot.date}`,
+    ...wrapText(dot.body, LABEL_WRAP_CHARS),
+    ...(dot.request ? wrapText('"' + dot.request + '"', LABEL_WRAP_CHARS) : [])
+  ].filter(Boolean);
+}
+
+function isSmallViewport() {
+  return Math.min(W, H) < 480;
+}
+
+function isTinyViewport() {
+  return Math.min(W, H) < 390;
+}
+
+function scatterLabelViewportScale() {
+  if (!W || !H) return 1;
+  const minDim = Math.min(W, H);
+  if (minDim < 480) {
+    return Math.max(0.5, Math.min(0.74, minDim / 500));
+  }
+  return Math.max(0.24, Math.min(1, minDim / SCATTER_LABEL_REF_MIN));
+}
+
+function scatterLabelFontSize() {
+  const minDim = Math.min(W || 0, H || 0);
+  if (isSmallViewport()) {
+    const boosted = SCATTER_LABEL_FONT_SIZE * scatterLabelViewportScale() * 1.12;
+    return Math.round(Math.max(minDim < 390 ? 34 : 38, boosted));
+  }
+  return Math.max(22, Math.round(SCATTER_LABEL_FONT_SIZE * scatterLabelViewportScale()));
+}
+
+function scatterLabelLineHeight() {
+  const fs = scatterLabelFontSize();
+  if (isSmallViewport()) {
+    return Math.round(fs * 1.48);
+  }
+  const minDim = Math.min(W || 0, H || 0);
+  const floor = minDim < 390 ? 19 : minDim < 480 ? 23 : 30;
+  return Math.max(floor, Math.round(SCATTER_LABEL_LINE_HEIGHT * scatterLabelViewportScale()));
+}
+
+function scatterLabelFontWeight() {
+  return isSmallViewport() ? 200 : SCATTER_LABEL_FONT_WEIGHT;
+}
+
+function scatterLabelParticleOffsets() {
+  return SCATTER_LABEL_PARTICLE_OFFSETS;
+}
+
+function scatterLabelStrokeWidth() {
+  return SCATTER_LABEL_STROKE * Math.max(0.65, scatterLabelViewportScale());
+}
+
+function scatterLabelSampleKey(dot) {
+  const batch = dot.detachBatchId ? scatterBatches.get(dot.detachBatchId) : null;
+  const frags = batch ? getScatterLabelFragments(batch, dot) : getLabelFragments(dot);
+  const tier = isTinyViewport() ? 'xs' : isSmallViewport() ? 'sm' : 'lg';
+  return frags.join('\u0001') + '|' + scatterLabelFontSize() + '|' + tier + '|' + W + '|' + (batch?.labelMode || '');
+}
+
+function shouldSampleScatterLabelPixel(x, y, data, w, h, isEdgeFn) {
+  const idx = (y * w + x) * 4;
+  const alpha = data[idx + 3];
+  if (alpha < 34) return false;
+  if (isSmallViewport()) {
+    return alpha >= 52 && isEdgeFn(x, y);
+  }
+  if (isEdgeFn(x, y)) return true;
+  if (alpha >= 88) return true;
+  if (alpha >= 52) return true;
+  if (alpha >= 38 && ((x + y) & 1) === 0) return true;
+  if (alpha >= 38 && ((x * 3 + y * 5) & 3) === 0) return true;
+  return false;
+}
+
+function getLabelLayout(dot) {
+  const fragments = getLabelFragments(dot);
+  const scatterText = isScatterLabelDot(dot);
+  const fontSize = scatterText ? scatterLabelFontSize() : LABEL_FONT_SIZE;
+  const lineHeight = scatterText ? scatterLabelLineHeight() : LABEL_LINE_HEIGHT;
+  const rawH = fragments.length * lineHeight;
+  let scale = Math.min(1, (H * 0.76) / Math.max(1, rawH));
+
+  const measureCtx = document.createElement('canvas').getContext('2d');
+  measureCtx.font = scatterText
+    ? scatterLabelCanvasFont(fontSize, dot)
+    : `${fontSize}px ${labelFontFamily(dot)}`;
+  let textW = fragments.reduce(
+    (m, line) => Math.max(m, measureCtx.measureText(line).width),
+    0
+  );
+
+  if (scatterText && isSmallViewport()) {
+    const hBudget = H * 0.62;
+    const wBudget = W * 0.94;
+    scale = Math.min(hBudget / Math.max(1, rawH), wBudget / Math.max(1, textW), 1);
+    scale = Math.max(scale, 0.58);
+  } else if (scatterText) {
+    scale = Math.min(scale, (W * 0.9) / Math.max(1, textW));
+  }
+
+  const blockH = rawH * scale;
+
+  if (labelParticles.length) {
+    let maxLx = 0;
+    for (const p of labelParticles) maxLx = Math.max(maxLx, p.lx);
+    textW = Math.max(textW, maxLx + 6);
+  }
+
+  return {
+    fragments,
+    originX: W * 0.5 - textW * scale * 0.5,
+    originY: H * 0.5 - blockH * 0.5,
+    blockH,
+    textW: textW * scale,
+    scale
+  };
+}
+
+function labelFontFamily(dot) {
+  const batch = dot.detachBatchId ? scatterBatches.get(dot.detachBatchId) : null;
+  if (batch?.logLine && /[\u3040-\u309F\u30A0-\u30FF]/.test(batch.logLine)) {
+    return '"Courier New", Courier, monospace';
+  }
+  return '"Courier New", Courier, monospace';
+}
+
+function scatterLabelFontFamily(dot) {
+  const batch = dot.detachBatchId ? scatterBatches.get(dot.detachBatchId) : null;
+  const hasJa = batch?.logLine && /[\u3040-\u309F]/.test(batch.logLine);
+  if (isSmallViewport()) {
+    if (hasJa) {
+      return '"Helvetica Neue Light", "Helvetica Neue", "Hiragino Sans W2", "Yu Gothic UI Light", sans-serif';
+    }
+    return '"Helvetica Neue Light", "Helvetica Neue", Arial, sans-serif';
+  }
+  if (hasJa) {
+    return '"Didot", "Bodoni 72", "Bodoni MT", "Palatino Linotype", "Georgia", "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif';
+  }
+  return '"Didot", "Bodoni 72", "Bodoni MT", "Palatino Linotype", "Georgia", "Times New Roman", serif';
+}
+
+function scatterLabelCanvasFont(fontSize, dot) {
+  return `${scatterLabelFontWeight()} ${fontSize}px ${scatterLabelFontFamily(dot)}`;
+}
+
+function organicScatterAssemble(x, y, w, h, seed) {
+  const nx = x / Math.max(1, w);
+  const ny = y / Math.max(1, h);
+  const blob1 = Math.sin(nx * 6.4 + seed * 0.0031) * Math.cos(ny * 5.3 + seed * 0.0047);
+  const blob2 = Math.cos(nx * 4.9 - ny * 7.1 + seed * 0.0063);
+  const blob3 = Math.sin((nx * 1.7 + ny * 2.3) * 7.8 + seed * 0.0089);
+  const noiseField = (blob1 + blob2 + blob3) / 3;
+
+  const dx = nx - 0.5;
+  const dy = ny - 0.5;
+  const radial = Math.hypot(dx, dy);
+  const ang = Math.atan2(dy, dx);
+  const ripple = Math.sin(ang * 3.2 + radial * 14 + seed * 0.0017) * 0.11;
+  const jitter = ((seed * 17) % 83) / 83;
+
+  let delay = 0.06 + (noiseField * 0.5 + 0.5) * 0.42 + radial * 0.14 + ripple + jitter * 0.14;
+  delay = Math.max(0, Math.min(0.76, delay));
+
+  const dur = 0.13 + Math.abs(noiseField) * 0.08 + ((seed * 11) % 67) / 67 * 0.13;
+  return { delay, dur };
+}
+
+function buildLabelParticles(dot) {
+  const fragments = getLabelFragments(dot);
+  const scatterText = isScatterLabelDot(dot);
+  const key = scatterText ? scatterLabelSampleKey(dot) : fragments.join('\u0001');
+  if (labelParticleKey === key && labelParticles.length) return;
+
+  labelParticles.length = 0;
+  labelParticleKey = key;
+
+  const scatterMobile = scatterText && isSmallViewport();
+  const fontStack = scatterText ? scatterLabelFontFamily(dot) : labelFontFamily(dot);
+  const fontSize = scatterText ? scatterLabelFontSize() : LABEL_FONT_SIZE;
+  const lineHeight = scatterText ? scatterLabelLineHeight() : LABEL_LINE_HEIGHT;
+  const off = document.createElement('canvas');
+  const octx = off.getContext('2d');
+  octx.font = scatterText ? scatterLabelCanvasFont(fontSize, dot) : `${fontSize}px ${fontStack}`;
+
+  let maxW = 0;
+  for (const line of fragments) maxW = Math.max(maxW, octx.measureText(line).width);
+
+  off.width = Math.ceil(maxW) + (scatterMobile ? 48 : 8);
+  if (scatterMobile && W) off.width = Math.max(off.width, Math.ceil(W * 0.92));
+  off.height = Math.ceil(fragments.length * lineHeight) + 8;
+
+  octx.font = scatterText ? scatterLabelCanvasFont(fontSize, dot) : `${fontSize}px ${fontStack}`;
+  octx.textAlign = 'left';
+  octx.textBaseline = 'middle';
+
+  if (scatterText) {
+    octx.fillStyle = '#ffffff';
+  } else {
+    octx.strokeStyle = '#ffffff';
+    octx.lineWidth = LABEL_STROKE_WIDTH;
+    octx.lineJoin = 'round';
+    octx.lineCap = 'round';
+  }
+
+  const baseY = lineHeight * 0.5 + 4;
+  const lineCharBounds = [];
+  let totalChars = 0;
+
+  fragments.forEach((line, lineIdx) => {
+    const bounds = [];
+    const lineW = octx.measureText(line).width;
+    let cx = scatterMobile ? (off.width - lineW) * 0.5 : 4;
+    for (let i = 0; i < line.length; i++) {
+      const cw = octx.measureText(line[i]).width;
+      bounds.push({ x0: cx, x1: cx + cw, charIdx: totalChars + i });
+      cx += cw;
+    }
+    const yMid = baseY + lineIdx * lineHeight;
+    lineCharBounds.push({
+      lineIdx,
+      y0: yMid - lineHeight * 0.55,
+      y1: yMid + lineHeight * 0.55,
+      bounds
+    });
+    totalChars += line.length;
+  });
+
+  fragments.forEach((line, i) => {
+    const y = baseY + i * lineHeight;
+    if (scatterText) {
+      octx.textAlign = scatterMobile ? 'center' : 'left';
+      octx.fillText(line, scatterMobile ? off.width * 0.5 : 4, y);
+    } else {
+      octx.strokeText(line, 4, y);
+    }
+  });
+
+  const img = octx.getImageData(0, 0, off.width, off.height);
+  const data = img.data;
+  const w = off.width;
+  const h = off.height;
+
+  function charMetaFor(x, y) {
+    for (const line of lineCharBounds) {
+      if (y < line.y0 || y >= line.y1) continue;
+      for (let i = 0; i < line.bounds.length; i++) {
+        const b = line.bounds[i];
+        if (x >= b.x0 && x < b.x1) {
+          return {
+            charIdx: b.charIdx,
+            charInLine: i,
+            lineIdx: line.lineIdx,
+            lineLen: line.bounds.length
+          };
+        }
+      }
+      if (line.bounds.length) {
+        const last = line.bounds[line.bounds.length - 1];
+        return {
+          charIdx: last.charIdx,
+          charInLine: line.bounds.length - 1,
+          lineIdx: line.lineIdx,
+          lineLen: line.bounds.length
+        };
+      }
+    }
+    return { charIdx: 0, charInLine: 0, lineIdx: 0, lineLen: 1 };
+  }
+
+  function isEdge(x, y) {
+    const idx = (y * w + x) * 4;
+    if (data[idx + 3] < 90) return false;
+    for (let oy = -1; oy <= 1; oy++) {
+      for (let ox = -1; ox <= 1; ox++) {
+        if (!ox && !oy) continue;
+        const nx = x + ox;
+        const ny = y + oy;
+        if (nx < 0 || ny < 0 || nx >= w || ny >= h) return true;
+        if (data[(ny * w + nx) * 4 + 3] < 90) return true;
+      }
+    }
+    return false;
+  }
+
+  const charCenters = new Map();
+  lineCharBounds.forEach((line) => {
+    const yMid = (line.y0 + line.y1) * 0.5;
+    line.bounds.forEach((b) => {
+      charCenters.set(b.charIdx, { cx: (b.x0 + b.x1) * 0.5, cy: yMid });
+    });
+  });
+
+  const numLines = fragments.length;
+  const sampleStep = scatterText ? SCATTER_LABEL_SAMPLE_STEP : LABEL_SAMPLE_STEP;
+  const textCx = w * 0.5;
+  const textCy = h * 0.5;
+
+  for (let y = 0; y < h; y += sampleStep) {
+    for (let x = 0; x < w; x += sampleStep) {
+      const idx = (y * w + x) * 4;
+      if (scatterText) {
+        if (!shouldSampleScatterLabelPixel(x, y, data, w, h, isEdge)) continue;
+      } else {
+        if (data[idx + 3] < 90) continue;
+        if (!isEdge(x, y)) continue;
+      }
+
+      const meta = charMetaFor(x, y);
+      const lineIdx = meta.lineIdx;
+      const seed = x * 17 + y * 31 + meta.charIdx * 53;
+      const linePhase = lineIdx / Math.max(1, numLines - 1);
+      const charLinePhase = meta.charInLine / Math.max(1, meta.lineLen - 1);
+      const center = charCenters.get(meta.charIdx) || { cx: x, cy: y };
+
+      let assembleDelay;
+      let assembleDur;
+      let startAngle;
+      let startDist;
+      let swirlX;
+      let swirlY;
+      let jitterAmp;
+      let easeStyle;
+
+      if (scatterText) {
+        const organic = organicScatterAssemble(x, y, w, h, seed);
+        assembleDelay = organic.delay;
+        assembleDur = organic.dur;
+        const pixelAng = Math.atan2(y - textCy, x - textCx);
+        const fan = ((seed * 13) % 360) / 360 * Math.PI * 1.35 - Math.PI * 0.675;
+        startAngle = pixelAng + fan;
+        startDist = Math.hypot(W, H) * (0.08 + ((seed * 7) % 97) / 97 * 0.32);
+        swirlX = Math.sin(seed * 0.019 + x * 0.04) * 18;
+        swirlY = Math.cos(seed * 0.023 + y * 0.05) * 16;
+        jitterAmp = 1.1 + (seed % 23) / 23 * 2.2;
+        easeStyle = (seed + lineIdx) % 5;
+      } else {
+        assembleDelay = linePhase * 0.5 + charLinePhase * 0.07 + ((seed % 13) / 13) * 0.03;
+        assembleDur = 0.22 + ((seed % 23) / 23) * 0.16;
+        startAngle = (seed % 360) / 360 * Math.PI * 2;
+        startDist = Math.hypot(W, H) * (0.12 + (seed % 89) / 89 * 0.38);
+        swirlX = ((seed % 37) - 18) * 3.2;
+        swirlY = ((seed % 29) - 14) * 3.2;
+        jitterAmp = 0.75 + (seed % 23) / 23 * 1.4;
+        easeStyle = seed % 3;
+      }
+
+      const particleBase = {
+        charCx: center.cx,
+        charCy: center.cy,
+        lineIdx,
+        charIdx: meta.charIdx,
+        phase: (seed % 628) / 100,
+        jitterAmp,
+        speed: (0.005 + (seed % 17) / 17 * 0.011) * RAY_MOTION_SCALE,
+        wobble: (seed % 41) / 41 * Math.PI * 2,
+        startAngle,
+        startDist,
+        swirlX,
+        swirlY,
+        easeStyle,
+        assembleDelay,
+        assembleDur,
+        scatterLabel: scatterText
+      };
+
+      if (scatterText) {
+        const offsets = scatterLabelParticleOffsets();
+        for (let oi = 0; oi < offsets.length; oi++) {
+          const [ox, oy] = offsets[oi];
+          const oSeed = seed + oi * 7919;
+          labelParticles.push({
+            ...particleBase,
+            lx: x + ox,
+            ly: y + oy,
+            phase: (oSeed % 628) / 100,
+            assembleDelay: assembleDelay + oi * 0.012,
+            wobble: (oSeed % 41) / 41 * Math.PI * 2
+          });
+        }
+      } else {
+        labelParticles.push({ ...particleBase, lx: x, ly: y, scatterLabel: false });
+      }
+    }
+  }
+}
+
+function clearLabelParticles(opts = {}) {
+  labelParticles.length = 0;
+  labelParticleKey = null;
+  if (!opts.keepAudio && typeof LabelAssemblyAudio !== 'undefined') LabelAssemblyAudio.stop(280);
+}
+
+function getLabelBarrier(dot) {
+  if (!dot?.hasData || labelReveal < 0.05) return null;
+
+  buildLabelParticles(dot);
+  if (!labelParticles.length) return null;
+
+  const layout = getLabelLayout(dot);
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+
+  for (const p of labelParticles) {
+    const px = layout.originX + p.lx * layout.scale;
+    const py = layout.originY + p.ly * layout.scale;
+    minX = Math.min(minX, px);
+    minY = Math.min(minY, py);
+    maxX = Math.max(maxX, px);
+    maxY = Math.max(maxY, py);
+  }
+
+  const pulse = 1 + 0.07 * Math.sin(t * 0.007 * RAY_MOTION_SCALE + dot.phase);
+
+  return {
+    cx: (minX + maxX) * 0.5,
+    cy: (minY + maxY) * 0.5,
+    rx: (maxX - minX) * 0.5 + 42 * pulse,
+    ry: (maxY - minY) * 0.5 + 34 * pulse,
+    wobble: dot.phase,
+    strength: labelReveal
+  };
+}
+
+function deflectAroundLabelBarrier(px, py, barrier, seed) {
+  if (!barrier) return { x: px, y: py, visible: true };
+
+  const dx = px - barrier.cx;
+  const dy = py - barrier.cy;
+  const ang = Math.atan2(dy, dx);
+  const shell = 1
+    + 0.16 * Math.sin(ang * 4 + t * 0.0055 * RAY_MOTION_SCALE + barrier.wobble)
+    + 0.09 * Math.sin(ang * 7 - t * 0.0038 * RAY_MOTION_SCALE + seed);
+  const rx = barrier.rx * shell;
+  const ry = barrier.ry * (1 + 0.11 * Math.cos(ang * 5 + t * 0.0045 * RAY_MOTION_SCALE));
+  const norm = Math.hypot(dx / rx, dy / ry);
+
+  if (norm < 1.28) {
+    if (norm < 0.58) return { x: px, y: py, visible: false };
+
+    const push = smoothstep(1.3, 0.62, norm) * barrier.strength * 52;
+    const len = Math.hypot(dx, dy) || 1;
+    const ux = dx / len;
+    const uy = dy / len;
+    const tangent = Math.sin(ang * 3 + t * 0.006 * RAY_MOTION_SCALE + seed) * 10 * barrier.strength;
+
+    return {
+      x: px + ux * push - uy * tangent * 0.35,
+      y: py + uy * push + ux * tangent * 0.35,
+      visible: true
+    };
+  }
+
+  return { x: px, y: py, visible: true };
+}
+
+function drawParticleLabels(dot) {
+  if (!dot.hasData || labelReveal < 0.01) return;
+
+  buildLabelParticles(dot);
+  if (!labelParticles.length || !focusNode) return;
+
+  const layout = getLabelLayout(dot);
+  const motionT = t * RAY_MOTION_SCALE;
+  const focusX = focusNode.sx;
+  const focusY = focusNode.sy;
+
+  const assemblyClock = smoothstep(0, 1, labelReveal);
+
+  for (const p of labelParticles) {
+    const assemble = smoothstep(p.assembleDelay, p.assembleDelay + p.assembleDur, assemblyClock);
+    if (assemble < 0.01) continue;
+
+    const scale = layout.scale;
+    const charPulse = 1 + Math.sin(motionT * 0.048 + p.charIdx * 0.62 + p.wobble) * 0.022;
+    const charSway = Math.sin(motionT * 0.031 + p.charIdx * 0.41) * 0.35;
+    const relX = (p.lx - p.charCx) * charPulse;
+    const relY = (p.ly - p.charCy) * charPulse;
+    const targetX = layout.originX + (p.charCx + relX) * scale + charSway;
+    const targetY = layout.originY + (p.charCy + relY) * scale;
+    let startX;
+    let startY;
+    if (p.scatterLabel) {
+      const angleToTarget = Math.atan2(targetY - focusY, targetX - focusX);
+      const blend = 0.25 + (p.phase % 1) * 0.55;
+      const startAng = angleToTarget * blend + p.startAngle * (1 - blend) + Math.sin(p.wobble * 2.1) * 0.55;
+      const dist = Math.max(
+        36,
+        Math.hypot(targetX - focusX, targetY - focusY) * (0.2 + (p.phase % 1) * 0.75) + p.startDist * 0.35
+      );
+      startX = focusX + Math.cos(startAng) * dist;
+      startY = focusY + Math.sin(startAng) * dist;
+    } else {
+      startX = focusX + Math.cos(p.startAngle) * p.startDist;
+      startY = focusY + Math.sin(p.startAngle) * p.startDist;
+    }
+
+    let easeT = assemble;
+    if (p.easeStyle === 0) easeT = assemble * assemble * (3 - 2 * assemble);
+    else if (p.easeStyle === 1) easeT = assemble < 0.5 ? 2 * assemble * assemble : 1 - Math.pow(-2 * assemble + 2, 2) / 2;
+    else if (p.easeStyle === 2) easeT = 1 - Math.pow(1 - assemble, 2.4);
+    else if (p.easeStyle === 3) easeT = Math.pow(assemble, 0.72);
+    else easeT = 1 - Math.pow(1 - assemble, 3.1);
+
+    const swirlScale = p.scatterLabel ? 1.8 : 1;
+    const ctrlX = (startX + targetX) * 0.5 + p.swirlX * swirlScale * (1 - easeT * 0.6);
+    const ctrlY = (startY + targetY) * 0.5 + p.swirlY * swirlScale * (1 - easeT * 0.6);
+    const inv = 1 - easeT;
+    let px = inv * inv * startX + 2 * inv * easeT * ctrlX + easeT * easeT * targetX;
+    let py = inv * inv * startY + 2 * inv * easeT * ctrlY + easeT * easeT * targetY;
+
+    const life = smoothstep(0.4, 1, easeT);
+    const letterWobble = Math.sin(p.lx * 0.16 + p.ly * 0.12 + p.wobble + motionT * 0.055) * 0.55;
+    const charTwist = Math.sin(motionT * 0.038 + p.charIdx * 0.73 + p.phase) * 0.45;
+    const jx = (
+      Math.sin(motionT * p.speed + p.phase) * p.jitterAmp +
+      Math.sin(motionT * p.speed * 2.3 + p.phase * 1.7) * p.jitterAmp * 0.55 +
+      Math.cos(motionT * p.speed * 0.75 + p.charIdx * 0.3) * p.jitterAmp * 0.35 +
+      letterWobble + charTwist
+    ) * life;
+    const jy = (
+      Math.cos(motionT * p.speed * 0.9 + p.phase * 1.35) * p.jitterAmp +
+      Math.sin(motionT * p.speed * 1.45 + p.phase * 0.85) * p.jitterAmp * 0.48 +
+      Math.sin(motionT * 0.042 + p.charIdx * 0.5 + p.wobble) * 0.4 +
+      Math.cos(p.ly * 0.15 - p.lx * 0.1 + p.wobble + motionT * 0.03) * 0.35
+    ) * life;
+
+    px += jx;
+    py += jy;
+
+    const flicker = 0.86 + 0.14 * Math.sin(motionT * p.speed * 2.1 + p.phase + p.charIdx * 0.25);
+    const travelAlpha = 0.3 + easeT * 0.7;
+    const alpha = assemble * flicker * travelAlpha * (p.lineIdx === 0 ? 0.86 : 0.56);
+
+    drawLabelParticle(px, py, alpha, p.scatterLabel ? SCATTER_LABEL_PARTICLE_SIZE : LABEL_PARTICLE_SIZE);
+  }
+}
+
+function drawNodeRays() {
+  if (waveReveal < 0.01 || !focusNode) return;
+
+  const hairline = 1 / DPR;
+  const cx = focusNode.sx;
+  const cy = focusNode.sy;
+  const maxLen = Math.hypot(W, H) * 0.72;
+  const labelBarrier = getLabelBarrier(focusNode);
+  const motionT = t * RAY_MOTION_SCALE;
+
+  for (const dot of cubeDots) {
+    if (dot === focusNode || dot.sz < -FOCAL + 0.3 || !dot.isRaySeed) continue;
+
+    const morph = dotMorphProgress(dot);
+    if (morph < 0.02) continue;
+
+    const dx = dot.sx - cx;
+    const dy = dot.sy - cy;
+    const nodeDist = Math.max(10, Math.hypot(dx, dy));
+    const baseAngle = Math.atan2(dy, dx);
+    const phase = dot.phase + dot.faceIdx * 0.7;
+    const rayStart = nodeDist;
+    const raySpan = maxLen - nodeDist;
+    const rayEnd = rayStart + raySpan * morph;
+    let dist = rayStart;
+    let prevX = null;
+    let prevY = null;
+    let step = 0;
+    let linkIndex = 0;
+
+    while (dist < rayEnd && step < 1350) {
+      step++;
+      const stepSize = NODE_RAY_STEP * dot.rayStepSkew * (0.68 + 0.62 * Math.abs(Math.sin(step * 1.7 + phase * 1.3)));
+      dist += stepSize;
+      if (dist > rayEnd) dist = rayEnd;
+
+      const u = raySpan > 0 ? (dist - rayStart) / raySpan : 0;
+      const stipple = (step * 3 + dot.gi + dot.faceIdx * 2) % 5;
+      if (stipple === 0) continue;
+
+      const angleWobble = dot.rayAngleBias * u
+        + Math.sin(u * dot.rayWobbleFreq * 8 + motionT * dot.rayWobbleSpeed + phase) * 0.11 * morph
+        + Math.sin(u * 2.3 + motionT * dot.rayWobbleSpeed * 0.6 + phase * 1.4) * 0.05 * morph;
+      const angle = baseAngle + angleWobble;
+      const cosA = Math.cos(angle);
+      const sinA = Math.sin(angle);
+      const perpX = -sinA;
+      const perpY = cosA;
+
+      const wave = (
+        Math.sin(u * 4.8 * dot.rayFlowBias + motionT * dot.rayParticleSpeed + phase) * (2.5 + u * 3.2) +
+        Math.sin(u * 9.1 - motionT * dot.rayParticleSpeed * 0.7 + phase * 0.8) * (1.2 + u * 1.8)
+      ) * morph;
+      const jitter = (
+        Math.sin(step * 1.05 + motionT * dot.rayWobbleSpeed + phase) * dot.rayJitterAmp +
+        Math.sin(step * 2.4 - motionT * dot.rayWobbleSpeed * 1.3 + phase * 1.6) * dot.rayJitterAmp * 0.6 +
+        Math.sin(dist * 0.09 + motionT * 0.018 + step * 0.75) * 4.2
+      ) * morph;
+
+      let px = cx + cosA * dist + perpX * (wave + jitter);
+      let py = cy + sinA * dist + perpY * (wave + jitter);
+
+      const deflected = deflectAroundLabelBarrier(px, py, labelBarrier, phase + step * 0.4);
+      if (!deflected.visible) {
+        prevX = null;
+        prevY = null;
+        continue;
+      }
+      px = deflected.x;
+      py = deflected.y;
+
+      if (px < -12 || px > W + 12 || py < -12 || py > H + 12) continue;
+
+      const flicker = 0.7 + 0.3 * Math.sin(motionT * dot.rayParticleSpeed * 2 + step * 1.35 + phase);
+      const alpha = morph * flicker * (0.2 - u * 0.1);
+      if (alpha < 0.02) continue;
+
+      if (prevX !== null && rayLinkVisible(dot, linkIndex)) {
+        ctx.globalAlpha = Math.min(1, alpha * 1.15);
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = hairline;
+        ctx.beginPath();
+        ctx.moveTo(prevX, prevY);
+        ctx.lineTo(px, py);
+        ctx.stroke();
+      }
+
+      drawPixelDot(px, py, PIXEL, alpha);
+      if (prevX !== null) linkIndex++;
+      prevX = px;
+      prevY = py;
+    }
+  }
+
+  const coreR = 14 * Math.min(1, waveReveal * 1.4);
+  ctx.globalAlpha = waveReveal * 0.14;
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = hairline;
+  ctx.beginPath();
+  ctx.arc(cx, cy, coreR, 0, Math.PI * 2);
+  ctx.stroke();
+}
+
+function drawLensRing() {
+  if (lensStrength < 0.04 || !mouse.onCanvas || focusMode) return;
+  ctx.globalAlpha = 0.05 * lensStrength;
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 1 / DPR;
+  ctx.beginPath();
+  ctx.arc(mouse.x, mouse.y, activeLensRadius(), 0, Math.PI * 2);
+  ctx.stroke();
+}
+
+function drawDetachReturnLines() {
+  if (pageBlend < 0.35 || focusMode) return;
+  if (!scatterDragActive || !scatterDragBatch) return;
+
+  ctx.save();
+  ctx.imageSmoothingEnabled = true;
+  ctx.lineCap = 'round';
+  const hairline = Math.max(0.35, 0.45 / DPR);
+
+  for (const dot of scatterDragBatch.dots) {
+    if (!dot.detachLocked) continue;
+    if (dot.detachAmt < 0.05) continue;
+
+    const homeX = dot.baseSx;
+    const homeY = dot.baseSy;
+    const dist = Math.hypot(dot.sx - homeX, dot.sy - homeY);
+    if (dist < DETACH_REATTACH_DIST * scrollZoom * 1.5) continue;
+
+    const alpha = Math.min(0.42, dist / 80) * pageBlend * dot.detachAmt * 0.6;
+    ctx.globalAlpha = alpha;
+    ctx.strokeStyle = '#d4dce8';
+    ctx.lineWidth = hairline;
+    ctx.beginPath();
+    ctx.moveTo(dot.sx, dot.sy);
+    ctx.lineTo(homeX, homeY);
+    ctx.stroke();
+  }
+
+  ctx.globalAlpha = 1;
+  ctx.restore();
+}
+
+function drawFallbackCursor() {
+  if (!mouse.onCanvas || focusMode) return;
+  if (lensStrength > 0.18) return;
+
+  const alpha = 0.42 + (1 - lensStrength) * 0.38;
+  if (sphereBlend > 0.35) {
+    drawSmoothDot(mouse.x, mouse.y, 2.2, alpha);
+    return;
+  }
+  drawPixelDot(mouse.x, mouse.y, PIXEL * 1.5, alpha);
+}
+
+function render() {
+  drawBackground();
+  drawCubeBaseGlow();
+
+  const sorted = cubeDots.slice().sort((a, b) => a.depth - b.depth);
+
+  drawCubeGlowPass(sorted);
+  drawSphereWireframe();
+  drawDetachReturnLines();
+  drawCursorThreads();
+  drawNodeRays();
+
+  for (const dot of sorted) {
+    if (dot.sz < -FOCAL + 0.3) continue;
+    if (!isCubeDotRenderable(dot)) continue;
+
+    const depthFade = smoothstep(-FOCAL + 0.5, CUBE_HALF + FOCAL, dot.sz);
+    let alpha = 0.12 + depthFade * 0.55;
+    if (dot.hasData) alpha = 0.35 + depthFade * 0.5;
+    if (!dot.isDummy && dot.hasData) alpha += 0.12;
+    alpha += dot.hover * 0.35;
+    if (dot.detachAmt > 0.15 && pageBlend > 0.35) alpha += dot.detachAmt * 0.18;
+    if (dot.detachLocked && dot.detachBatchId && dot !== focusNode) {
+      alpha *= scatterBatchReadDim(dot.detachBatchId);
+    }
+    if (dot === magnetNode) alpha += lensStrength * 0.28;
+    if (dot.selected) alpha = Math.min(1, alpha + 0.25);
+
+    if (focusMode && dot !== focusNode) {
+      if (dot.isRaySeed) {
+        const morph = dotMorphProgress(dot);
+        alpha *= 1 - morph * 0.92;
+      } else {
+        alpha *= 0.2;
+      }
+    }
+
+    if (sphereBlend > 0.25) {
+      alpha = (0.22 + depthFade * 0.62) * (0.72 + sphereBlend * 0.28);
+      if (dot.hasData) alpha += 0.1 * sphereBlend;
+      if (dot.isDummy) alpha *= 0.75;
+    }
+
+    const r = dot.drawR + dot.hover * 1.6 + (dot === magnetNode ? lensStrength * 2 : 0);
+    const useSmooth = sphereBlend > 0.35;
+    const vertexR = useSmooth
+      ? Math.max(1.1, r * 1.05)
+      : Math.max(PIXEL, r);
+
+    if (useSmooth) {
+      drawSmoothDot(dot.sx, dot.sy, vertexR, alpha);
+    } else {
+      drawPixelDot(dot.sx, dot.sy, vertexR, alpha);
+    }
+
+    if (sphereBlend > 0.4 && !dot.selected && dot !== magnetNode) continue;
+
+    if (dot.hover > 0.3 || dot.selected || dot === magnetNode) {
+      const ringA = dot === magnetNode
+        ? 0.12 + lensStrength * 0.38
+        : (dot.selected ? 0.5 : 0.2) * Math.max(dot.hover, dot.selected ? 1 : 0);
+      if (useSmooth) {
+        drawSmoothRing(dot.sx, dot.sy, r, ringA);
+      } else {
+        drawPixelRing(dot.sx, dot.sy, r, ringA);
+      }
+    }
+  }
+
+  if (focusNode && labelReveal > 0.02) {
+    drawParticleLabels(focusNode);
+  }
+
+  drawLensRing();
+  drawFallbackCursor();
+  drawFilmGrain();
+
+  ctx.globalAlpha = 1;
+}
+
+function step() {
+  t++;
+  rayTimeSec = performance.now() * 0.001;
+  const rotScale = 1 - pageBlend * 0.34 - sphereBlend * 0.22;
+  const wobble = pageBlend * (
+    Math.sin(t * 0.0041) * 0.0012 +
+    Math.cos(t * 0.0026 + 1.2) * 0.0009
+  ) + sphereBlend * (
+    Math.sin(t * 0.0032 + 0.8) * 0.0007 +
+    Math.cos(t * 0.0021 + 2.1) * 0.0005
+  );
+  rotX += (ROT_SPEED_X * rotScale + wobble) * CUBE_MOTION_SCALE;
+  rotY += (ROT_SPEED_Y * rotScale + wobble * 0.65) * CUBE_MOTION_SCALE;
+
+  updateDots();
+  render();
+  requestAnimationFrame(step);
+}
+
+/* =========================================================
+   INTERACTION — fisheye pick · specimen panel
+   ========================================================= */
+function getPointer(e) {
+  const rect = canvas.getBoundingClientRect();
+  const cx = (e.clientX ?? e.touches?.[0]?.clientX) - rect.left;
+  const cy = (e.clientY ?? e.touches?.[0]?.clientY) - rect.top;
+  return { x: cx, y: cy };
+}
+
+function findNodeAt(sx, sy) {
+  let best = null;
+  let bestScore = Infinity;
+
+  for (const dot of cubeDots) {
+    if (dot.sz < -FOCAL + 0.3) continue;
+    if (!isArchiveNode(dot)) continue;
+    const d = Math.hypot(dot.sx - sx, dot.sy - sy);
+    const score = d - dot.depth * 0.01 - (dot === magnetNode ? 28 : 0);
+    if (score < bestScore) {
+      best = dot;
+      bestScore = score;
+    }
+  }
+
+  return best;
+}
+
+function enterFocus(dot, opts = {}) {
+  if (selectedNode) selectedNode.selected = false;
+  focusNode = dot;
+  selectedNode = dot;
+  dot.selected = true;
+  focusMode = true;
+  focusZoomTarget = FOCUS_ZOOM;
+  labelReveal = opts.instantLabel ? 1 : 0;
+  if (opts.skipRays) clearRayBurst();
+  else setupRayBurst(dot);
+
+  const batch = dot.detachBatchId ? scatterBatches.get(dot.detachBatchId) : null;
+  const rootHz = batch?.soundRootHz || (dot.detachBatchId ? scatterMetricToRootHz(dot) : 0);
+
+  if (opts.resumeSound && batch?.soundEstablished) {
+    clearLabelParticles({ keepAudio: true });
+    PullAudio.unlock();
+    if (rootHz) LabelAssemblyAudio.setRoot(rootHz);
+    LabelAssemblyAudio.resumeSustain();
+  } else {
+    LabelAssemblyAudio.stop(80);
+    clearLabelParticles();
+    if (!opts.instantLabel) PullAudio.unlock();
+    if (rootHz) {
+      LabelAssemblyAudio.setRoot(rootHz);
+      if (batch && !batch.soundRootHz) batch.soundRootHz = rootHz;
+    }
+  }
+
+  scheduleBuildLabelParticles(dot);
+}
+
+function scheduleBuildLabelParticles(dot) {
+  pendingLabelDot = dot;
+  if (labelBuildFrameScheduled) return;
+  labelBuildFrameScheduled = true;
+  requestAnimationFrame(() => {
+    labelBuildFrameScheduled = false;
+    const target = pendingLabelDot;
+    pendingLabelDot = null;
+    if (target && focusNode === target) buildLabelParticles(target);
+  });
+}
+
+function exitFocus() {
+  focusMode = false;
+  focusZoomTarget = 1;
+  backdrop.classList.remove('active');
+  clearRayBurst();
+  clearLabelParticles();
+  if (focusNode) {
+    focusNode.selected = false;
+    focusNode = null;
+  }
+  selectedNode = null;
+}
+
+function selectNode(dot) {
+  if (!isArchiveNode(dot)) return;
+  enterFocus(dot);
+}
+
+function beginPointer(e) {
+  if (pointerDown && shouldReleasePeel()) {
+    finishPointerRelease(null);
+  } else if (pointerDown) {
+    forceReleaseInteraction();
+  }
+
+  if (e?.pointerId != null) {
+    activePointerId = e.pointerId;
+    try { canvas.setPointerCapture(e.pointerId); } catch (_) {}
+  } else {
+    activePointerId = null;
+  }
+
+  lastKnownButtons = (e?.buttons != null) ? ((e.buttons & 1) ? 1 : 0) : 1;
+
+  const p = getPointer(e);
+  mouse.x = p.x;
+  mouse.y = p.y;
+  mouse.onCanvas = true;
+  pointerDown = true;
+  dragMoved = false;
+  pointerGestureDragged = false;
+  cubeDragActive = false;
+  scatterDragActive = false;
+  scatterDragPending = false;
+  scatterDragBatch = null;
+  dragStartX = p.x;
+  dragStartY = p.y;
+  prevMouseX = p.x;
+  prevMouseY = p.y;
+
+  PullAudio.unlock();
+
+  if (isScatterFocus()) return;
+
+  const batch = findScatterBatchAt(p.x, p.y);
+  if (batch) {
+    scatterDragBatch = batch;
+    scatterDragPending = true;
+    magnetNode = null;
+    dragGrabbedCube = false;
+    return;
+  }
+
+  dragGrabbedCube = !focusMode && pointerNearCube(p.x, p.y);
+}
+
+function movePointer(e) {
+  if (e && typeof e.buttons === 'number') {
+    lastKnownButtons = (e.buttons & 1) ? 1 : 0;
+  }
+  if (pointerDown && !pointerPrimaryDown(e)) {
+    endPointer(e);
+    return;
+  }
+  if (e?.pointerId != null && activePointerId != null && e.pointerId !== activePointerId) return;
+
+  const p = getPointer(e);
+  const prevX = mouse.x;
+  const prevY = mouse.y;
+  mouse.x = p.x;
+  mouse.y = p.y;
+  mouse.onCanvas = true;
+
+  if (scatterDragPending && scatterDragBatch && pointerPrimaryDown(e)) {
+    if (!focusMode) {
+      const dist = Math.hypot(p.x - dragStartX, p.y - dragStartY);
+      if (dist > SCATTER_DRAG_THRESHOLD) {
+        pointerGestureDragged = true;
+        scatterDragPending = false;
+        scatterDragActive = true;
+        beginScatterDrag(scatterDragBatch, dragStartX, dragStartY);
+        dragMoved = true;
+      }
+    }
+    magnetNode = null;
+    return;
+  }
+
+  if (scatterDragActive && scatterDragBatch && pointerPrimaryDown(e) && !focusMode) {
+    pointerGestureDragged = true;
+    dragMoved = true;
+    magnetNode = null;
+    return;
+  }
+
+  if (!pointerPrimaryDown(e) || focusMode || !dragGrabbedCube) return;
+
+  const dist = Math.hypot(p.x - dragStartX, p.y - dragStartY);
+  if (dist > CUBE_DRAG_THRESHOLD) {
+    if (!cubeDragActive) assignMeshGrab(dragStartX, dragStartY);
+    cubeDragActive = true;
+    dragMoved = true;
+    magnetNode = null;
+  }
+}
+
+function endPointer(e) {
+  if (!pointerDown && !shouldReleasePeel()) {
+    if (e?.pointerId != null) {
+      try { canvas.releasePointerCapture(e.pointerId); } catch (_) {}
+    }
+    return;
+  }
+  finishPointerRelease(e);
+}
+
+canvas.addEventListener('pointerdown', e => {
+  if (e.button !== 0) return;
+  e.preventDefault();
+  beginPointer(e);
+});
+document.addEventListener('pointerup', e => {
+  if (e.button !== 0) return;
+  if (!pointerDown && !shouldReleasePeel()) return;
+  finishPointerRelease(e);
+}, true);
+window.addEventListener('pointermove', e => {
+  movePointer(e);
+}, { passive: true });
+window.addEventListener('pointerup', e => {
+  if (e.button !== 0) return;
+  endPointer(e);
+});
+window.addEventListener('pointercancel', endPointer);
+window.addEventListener('blur', () => {
+  if (!pointerDown) return;
+  forceReleaseInteraction();
+});
+
+canvas.addEventListener('mouseleave', () => {
+  if (!pointerDown) {
+    mouse.x = -9999;
+    mouse.y = -9999;
+    mouse.onCanvas = false;
+    magnetNode = null;
+  }
+});
+
+function revertFromFocus() {
+  if (backdrop.classList.contains('active')) {
+    closePanel();
+    return;
+  }
+  if (focusMode) exitFocus();
+}
+
+canvas.addEventListener('wheel', e => {
+  e.preventDefault();
+
+  if (focusMode && e.deltaY > 0) {
+    revertFromFocus();
+    return;
+  }
+
+  const zoomFactor = Math.exp(-e.deltaY * 0.0012);
+  scrollZoomTarget = Math.max(
+    MIN_SCROLL_ZOOM,
+    Math.min(MAX_SCROLL_ZOOM, scrollZoomTarget * zoomFactor)
+  );
+}, { passive: false });
+
+function handleSelectAt(sx, sy) {
+  if (isScatterFocus()) return;
+}
+
+/* =========================================================
+   PANEL — specimen annotation, not dashboard
+   ========================================================= */
+const backdrop = document.getElementById('panelBackdrop');
+const panelContent = document.getElementById('panelContent');
+const panelClose = document.getElementById('panelClose');
+
+function closePanel() {
+  backdrop.classList.remove('active');
+}
+
+function openDetailPanel(n) {
+  panelContent.innerHTML = `
+    <div class="panel-header">
+      <p class="panel-stream">${n.stream}</p>
+      <p class="panel-day">DAY ${String(n.day).padStart(2,'0')} · ${n.date}</p>
+    </div>
+    <p class="panel-body">${n.body}</p>
+    <p class="panel-context">Request that day: "${n.request}"</p>
+  `;
+  backdrop.classList.add('active');
+}
+
+panelClose.addEventListener('click', closePanel);
+backdrop.addEventListener('click', e => { if (e.target === backdrop) closePanel(); });
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') revertFromFocus();
+});
+
+resize();
+step();
+</script>
+</body>
+</html>
