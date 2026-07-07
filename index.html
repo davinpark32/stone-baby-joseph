@@ -97,6 +97,33 @@
     line-height: 2;
   }
 
+  /* ---------- Mobile return button (only shown on small screens while reading) ---------- */
+  .mobile-return {
+    position: fixed;
+    top: 18px;
+    right: 16px;
+    z-index: 60;
+    display: none;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background: rgba(8, 10, 12, 0.72);
+    border: 1px solid rgba(200, 212, 228, 0.35);
+    color: var(--ink);
+    font-size: 12px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    border-radius: 2px;
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .mobile-return .arrow { font-size: 14px; line-height: 1; }
+  .mobile-return.visible { opacity: 1; }
+
   /* ---------- Specimen panel ---------- */
   .panel-backdrop {
     position: fixed;
@@ -289,6 +316,10 @@
   pull to release clusters · click to read<br>
   drag to move · scroll to zoom
 </div>
+
+<button class="mobile-return" id="mobileReturn" aria-label="Return">
+  <span class="arrow">&#8592;</span> return
+</button>
 
 <div class="panel-backdrop" id="panelBackdrop">
   <div class="panel-card" id="panelCard">
@@ -3308,6 +3339,7 @@ function updateDots() {
     if (batch && labelReveal > 0.5) batch.labelRevealed = true;
   }
   updateLabelAssemblyAudio();
+  updateMobileReturnButton();
   waveReveal = ease(waveReveal, focusMode ? 1 : 0, WAVE_REVEAL_EASE);
 
   for (const dot of cubeDots) {
@@ -3648,6 +3680,10 @@ function getLabelFragments(dot) {
 
 function isSmallViewport() {
   return Math.min(W, H) < 480;
+}
+
+function isMobileDevice() {
+  return (typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches) || isSmallViewport();
 }
 
 function isTinyViewport() {
@@ -4520,6 +4556,14 @@ function exitFocus() {
     focusNode = null;
   }
   selectedNode = null;
+  updateMobileReturnButton();
+}
+
+function updateMobileReturnButton() {
+  const btn = document.getElementById('mobileReturn');
+  if (!btn) return;
+  const show = isMobileDevice() && focusMode && labelReveal > 0.04;
+  btn.classList.toggle('visible', show);
 }
 
 function selectNode(dot) {
@@ -4722,6 +4766,31 @@ backdrop.addEventListener('click', e => { if (e.target === backdrop) closePanel(
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') revertFromFocus();
 });
+
+/* ---------- Mobile return button + two-finger tap to exit reading ---------- */
+const mobileReturnBtn = document.getElementById('mobileReturn');
+if (mobileReturnBtn) {
+  const returnHandler = e => {
+    e.preventDefault();
+    e.stopPropagation();
+    forceReleaseInteraction();
+    revertFromFocus();
+    updateMobileReturnButton();
+  };
+  mobileReturnBtn.addEventListener('click', returnHandler);
+  mobileReturnBtn.addEventListener('touchend', returnHandler, { passive: false });
+}
+
+// Two-finger tap ("pinch click") anywhere on the surface leaves the text (mobile only).
+canvas.addEventListener('touchstart', e => {
+  if (!focusMode) return;
+  if (e.touches.length >= 2) {
+    e.preventDefault();
+    forceReleaseInteraction();
+    revertFromFocus();
+    updateMobileReturnButton();
+  }
+}, { passive: false });
 
 resize();
 step();
